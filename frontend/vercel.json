@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://ikk-backend-api.onrender.com/api/:path*"
+      "destination": "https://ikk-self-assessment.vercel.app/api/:path*"
     },
     {
       "source": "/(.*)",
