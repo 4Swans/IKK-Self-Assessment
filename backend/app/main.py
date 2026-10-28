@@ -1,4 +1,3 @@
-import asyncio
 import os
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -14,22 +13,23 @@ from app.seeds.muat import muat_instrumen
 from app.seeds.seed_prod import seed_production_initial_data
 
 _vercel_db_initialized = False
-_vercel_init_lock = asyncio.Lock()
+_vercel_init_error: str | None = None
 
 
 async def ensure_vercel_db_initialized() -> None:
     """Inisialisasi skema tabel, instrumen 2026, dan akun awal otomatis saat berjalan di Vercel."""
-    global _vercel_db_initialized
+    global _vercel_db_initialized, _vercel_init_error
     if _vercel_db_initialized:
         return
-    async with _vercel_init_lock:
-        if _vercel_db_initialized:
-            return
+    try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         await muat_instrumen(2026)
         await seed_production_initial_data()
         _vercel_db_initialized = True
+        _vercel_init_error = None
+    except Exception as exc:
+        _vercel_init_error = f"{type(exc).__name__}: {exc}"
 
 
 @asynccontextmanager
@@ -46,15 +46,16 @@ app = FastAPI(
         "Indeks Kualitas Kebijakan (IKK) LAN RI."
     ),
     version="1.0.0",
-    docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
-    redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
     lifespan=lifespan,
 )
 
-# CORS Middleware
+# CORS Middleware (mendukung seluruh subdomain preview/production Vercel)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,10 +72,24 @@ async def vercel_auto_init_middleware(
 
 
 # Hubungkan router versi 1
-# Self-Assessment IKK API Router v1
 app.include_router(api_v1_router, prefix="/api/v1")
 
 
+@app.get("/", tags=["Sistem"])
+async def root_status() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "app": "IKK Self-Assessment API",
+        "db_initialized": _vercel_db_initialized,
+        "db_error": _vercel_init_error,
+    }
+
+
 @app.get("/healthz", tags=["Sistem"])
-async def health_check() -> dict[str, str]:
-    return {"status": "ok", "app": "IKK Self-Assessment"}
+async def health_check() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "app": "IKK Self-Assessment",
+        "db_initialized": _vercel_db_initialized,
+        "db_error": _vercel_init_error,
+    }

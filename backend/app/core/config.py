@@ -38,6 +38,7 @@ class Settings(BaseSettings):
         url = (
             os.getenv("DATABASE_URL")
             or os.getenv("POSTGRES_URL")
+            or os.getenv("NEON_DATABASE_URL")
             or os.getenv("POSTGRES_PRISMA_URL")
             or self.DATABASE_URL
         ).strip()
@@ -52,7 +53,14 @@ class Settings(BaseSettings):
             clean_params = [
                 (k, v)
                 for k, v in parse_qsl(parts.query)
-                if k not in ("sslmode", "channel_binding", "pgbouncer", "supa")
+                if k
+                not in (
+                    "sslmode",
+                    "channel_binding",
+                    "pgbouncer",
+                    "supa",
+                    "options",
+                )
             ]
             url = urlunsplit(
                 (parts.scheme, parts.netloc, parts.path, urlencode(clean_params), parts.fragment)
@@ -61,8 +69,18 @@ class Settings(BaseSettings):
 
     @property
     def needs_ssl(self) -> bool:
-        raw = (os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or self.DATABASE_URL).lower()
-        return "sslmode=require" in raw or "neon.tech" in raw or "supabase.com" in raw
+        raw = (
+            os.getenv("DATABASE_URL")
+            or os.getenv("POSTGRES_URL")
+            or os.getenv("NEON_DATABASE_URL")
+            or self.DATABASE_URL
+        ).lower()
+        return (
+            "sslmode=require" in raw
+            or "neon.tech" in raw
+            or "supabase.com" in raw
+            or "vercel-storage.com" in raw
+        )
 
     @property
     def cors_origins_list(self) -> list[str]:
