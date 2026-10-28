@@ -1,0 +1,56 @@
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Uploaded Evidence Files (Dokumen Dinas) & Local DB Data
+backend/uploads/
+uploads/
+postgres_data/
+.agents/
+.claude/
+.cursor/
+.gemini/
+
+# Sensitive & Internal Dev Docs
+accounts.md
+CLAUDE.md
+AGENTS.md
+DESIGN.md
+PRODUCT.md
+docs/
+render.yaml
+backend/verify_mgmt.py
+backend/openapi.json
+INSTRUMEN PENGUKURAN KUALITAS KEBIJAKAN.pdf
+PANDUAN PENGUKURAN KUALITAS KEBIJAKAN.pdf
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.vite/
+*.tsbuildinfo
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

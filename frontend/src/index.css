@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Palet identitas resmi:
+       #F0F3FA (brand-50)  - Ice Pearl Background
+       #D5DEEF (brand-100) - Soft Periwinkle Mist
+       #B1C9EF (brand-200) - Pastel Sky Blue
+       #8AAEE0 (brand-300) - Soft Cerulean Accent
+       #628ECB (brand-500) - Vibrant Classic Cobalt
+       #395886 (brand-700) - Deep Marine Slate Navy
+    */
+    --background: 222 50% 96.1%;
+    --foreground: 216 40.3% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 216 40.3% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 216 40.3% 18%;
+
+    /* Primary: #395886 */
+    --primary: 216 40.3% 37.5%;
+    --primary-foreground: 222 50% 96.1%;
+
+    /* Secondary: #D5DEEF */
+    --secondary: 219 44.8% 88.6%;
+    --secondary-foreground: 216 40.3% 25%;
+
+    --muted: 222 45% 94%;
+    --muted-foreground: 216 25% 42%;
+
+    /* Accent: #B1C9EF */
+    --accent: 217 66% 81.6%;
+    --accent-foreground: 216 40.3% 22%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Border & Input: #D5DEEF */
+    --border: 219 44.8% 88.6%;
+    --input: 219 44.8% 88.6%;
+    
+    /* Ring: #628ECB */
+    --ring: 215 50.7% 59%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 216 42% 10%;
+    --foreground: 222 50% 96.1%;
+
+    --card: 216 40% 13%;
+    --card-foreground: 222 50% 96.1%;
+
+    --popover: 216 40% 13%;
+    --popover-foreground: 222 50% 96.1%;
+
+    /* #628ECB */
+    --primary: 215 50.7% 59%;
+    --primary-foreground: 216 42% 10%;
+
+    --secondary: 216 30% 20%;
+    --secondary-foreground: 222 50% 96.1%;
+
+    --muted: 216 30% 17%;
+    --muted-foreground: 219 30% 72%;
+
+    --accent: 216 30% 20%;
+    --accent-foreground: 222 50% 96.1%;
+
+    --destructive: 0 62.8% 45.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 216 28% 24%;
+    --input: 216 28% 24%;
+    --ring: 215 50.7% 59%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-brand-100 selection:text-brand-900;
+    caret-color: hsl(var(--primary));
+  }
+
+  .tnum, .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Accessibility: Visible focus rings */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Browser surface: Sleek scrollbar with palette colors */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #B1C9EF;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #8AAEE0;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

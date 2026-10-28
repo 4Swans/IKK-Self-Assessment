@@ -1,0 +1,201 @@
+{
+  "tahun": 2026,
+  "versi": "2026.1",
+  "aktif": true,
+  "bobot_profil": "10.00",
+  "skor_profil_ya": "100.00",
+  "skor_profil_tidak": null,
+  "profil_pertanyaan": "Apakah dalam penilaian indeks kualitas kebijakan ini, Anda melibatkan jabatan fungsional analis kebijakan?",
+  "profil_bukti_dukung": "Surat Penunjukan (tautan yang dapat diakses publik)",
+  "dimensi": [
+    {
+      "kode": "A",
+      "nama": "Perencanaan Kebijakan",
+      "bobot": "20.00",
+      "pertanyaan": [
+        {
+          "kode": "A1",
+          "teks": "Apakah kebijakan disusun berdasarkan data dan informasi yang valid (kajian/telaahan/penelitian/analisis kebijakan)?",
+          "bobot_relatif": "40.00",
+          "bukti_dukung": "Laporan kajian, data statistik",
+          "keterangan": "• Standar Baku:\n  1. Format penulisan kajian memuat kejelasan tujuan, target, dan urgensi kebijakan.\n  2. Hierarki UU/Perda memenuhi teknik penyusunan perUUan (UU 12/2011 & perubahannya).\n• Relevan: Sesuai waktu perencanaan dan muatan isu kebijakan.\n• Kredibel: Diketahui dan disahkan oleh pejabat yang berwenang.",
+          "opsi": [
+            { "huruf": "A", "teks": "Kebijakan tidak disusun berdasarkan data dan informasi (kajian/telaahan/penelitian/analisis kebijakan) yang valid", "skor": "0.00" },
+            { "huruf": "B", "teks": "Kebijakan disusun berdasarkan data dan informasi (kajian/telaahan/analisis kebijakan) yang tidak relevan, tidak kredibel, dan tidak memenuhi kaidah/standar baku", "skor": "25.00" },
+            { "huruf": "C", "teks": "Kebijakan disusun berdasarkan data dan informasi (kajian/telaahan/analisis kebijakan) yang relevan, tetapi tidak kredibel dan tidak memenuhi kaidah/standar baku", "skor": "50.00" },
+            { "huruf": "D", "teks": "Kebijakan disusun berdasarkan data dan informasi (kajian/telaahan/analisis kebijakan) yang relevan, kredibel, tetapi tidak memenuhi kaidah/standar baku", "skor": "75.00" },
+            { "huruf": "E", "teks": "Kebijakan disusun berdasarkan data dan informasi (kajian/telaahan/analisis kebijakan) yang relevan, kredibel, dan memenuhi kaidah/standar baku", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "A2",
+          "teks": "Apakah pemangku kepentingan terlibat dalam perumusan kebijakan?",
+          "bobot_relatif": "40.00",
+          "bukti_dukung": "Dokumen konsultasi publik, risalah diskusi",
+          "keterangan": "• Aktif: Terlibat proaktif, dinamis, dan berkelanjutan memberikan masukan.\n• Berkala: Pelibatan dilakukan lebih dari satu kali pertemuan/forum.\n• Bersifat Administratif: Formalitas prosedural tanpa partisipasi bermakna atau umpan balik nyata.\n• Stakeholder Eksternal: Pihak luar instansi yang berkepentingan atau terdampak kebijakan.\n• Kelompok Sasaran: Masyarakat, pelaku usaha, atau LSM yang terdampak langsung (Permenpan RB 16/2017).",
+          "opsi": [
+            { "huruf": "A", "teks": "Pemangku kepentingan tidak terlibat dalam perumusan kebijakan", "skor": "0.00" },
+            { "huruf": "B", "teks": "Keterlibatan pemangku kepentingan bersifat administratif", "skor": "25.00" },
+            { "huruf": "C", "teks": "Keterlibatan pemangku kepentingan hanya berasal dari stakeholder eksternal pemerintah tanpa melibatkan kelompok sasaran kebijakan", "skor": "50.00" },
+            { "huruf": "D", "teks": "Keterlibatan pemangku kepentingan mencakup stakeholder eksternal pemerintah dan kelompok sasaran kebijakan, tetapi tidak dilakukan secara aktif dan tidak berkala", "skor": "75.00" },
+            { "huruf": "E", "teks": "Keterlibatan pemangku kepentingan mencakup stakeholder eksternal pemerintah dan kelompok sasaran kebijakan dilakukan secara aktif dan berkala", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "A3",
+          "teks": "Apakah analisis dampak kebijakan dilakukan sebelum implementasi?",
+          "bobot_relatif": "20.00",
+          "bukti_dukung": "Laporan Analisis Dampak Regulasi (Regulatory Impact Assessment (RIA)/ROCCIPI), atau bentuk laporan lainnya yang relevan",
+          "keterangan": "• Analisis Dampak: Penilaian sistematis potensi dampak positif/negatif sebelum implementasi (metode RIA, ROCCIPI, atau CBA).\n• Memenuhi Standar Baku: Metodologi ilmiah yang diakui dan sesuai format UU 12/2011.\n• Kredibel: Diketahui dan disahkan oleh pejabat yang berwenang.\n• Hasil Digunakan: Rekomendasi analisis dampak benar-benar diadopsi dalam perumusan kebijakan.",
+          "opsi": [
+            { "huruf": "A", "teks": "Kebijakan tidak didahului dengan analisis dampak kebijakan", "skor": "0.00" },
+            { "huruf": "B", "teks": "Kebijakan didahului dengan analisis dampak yang tidak memiliki relevansi terhadap rumusan kebijakan", "skor": "25.00" },
+            { "huruf": "C", "teks": "Kebijakan didahului dengan analisis dampak yang tidak memenuhi kaidah/standar baku", "skor": "50.00" },
+            { "huruf": "D", "teks": "Kebijakan didahului dengan analisis dampak yang memenuhi kaidah/standar baku, kredibel, tetapi hasilnya tidak digunakan dalam proses perumusan kebijakan", "skor": "75.00" },
+            { "huruf": "E", "teks": "Kebijakan didahului dengan analisis dampak yang memenuhi kaidah/standar baku, kredibel, dan hasilnya digunakan dalam proses perumusan kebijakan", "skor": "100.00" }
+          ]
+        }
+      ]
+    },
+    {
+      "kode": "B",
+      "nama": "Implementasi Kebijakan",
+      "bobot": "25.00",
+      "pertanyaan": [
+        {
+          "kode": "B1",
+          "teks": "Apakah kebijakan memiliki kejelasan koordinasi dan komunikasi dalam pelaksanaannya?",
+          "bobot_relatif": "35.00",
+          "bukti_dukung": "Dokumen Bispro/SOP, pedoman/kebijakan teknis implementasi",
+          "keterangan": "• Standar Baku: Sesuai format koordinasi dan komunikasi resmi (Permenpan RB 15/2014 & Permenpan RB 35/2012 tentang SOP AP).\n• Kredibel: Diketahui dan disahkan oleh pejabat yang berwenang.\n• Dilakukan Monev: Terdapat evaluasi rutin untuk memastikan prosedur berjalan efektif dan perbaikan kendala.",
+          "opsi": [
+            { "huruf": "A", "teks": "Kebijakan tidak memiliki prosedur koordinasi dan komunikasi dalam pelaksanaannya", "skor": "0.00" },
+            { "huruf": "B", "teks": "Kebijakan memiliki prosedur koordinasi dan komunikasi yang tidak jelas dalam pelaksanaannya", "skor": "25.00" },
+            { "huruf": "C", "teks": "Kebijakan memiliki prosedur koordinasi dan komunikasi yang tidak sesuai standar baku", "skor": "50.00" },
+            { "huruf": "D", "teks": "Kebijakan memiliki prosedur koordinasi dan komunikasi yang sesuai standar baku, kredibel, tetapi tidak dilakukan monitoring dan evaluasi terhadap pelaksanaannya", "skor": "75.00" },
+            { "huruf": "E", "teks": "Kebijakan memiliki prosedur koordinasi dan komunikasi yang sesuai standar baku, kredibel, dan dilakukan monitoring dan evaluasi terhadap pelaksanaannya", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "B2",
+          "teks": "Apakah kebijakan dapat diimplementasikan secara efektif di lapangan?",
+          "bobot_relatif": "35.00",
+          "bukti_dukung": "Laporan monitoring dan evaluasi",
+          "keterangan": "• Indikator Kinerja: Mengacu sistem monev elektronik, Laporan Kinerja Triwulan, dan Tahunan.\n• Target Sumber Daya: Pemenuhan kecukupan alokasi anggaran dan SDM aparatur.\n• Target Capaian Kinerja: Realisasi target kinerja pada sistem evaluasi kinerja elektronik.",
+          "opsi": [
+            { "huruf": "A", "teks": "Kebijakan tidak dapat diimplementasikan secara efektif di lapangan", "skor": "0.00" },
+            { "huruf": "B", "teks": "Kebijakan diimplementasikan tetapi tidak sesuai dengan indikator kinerja, target sumber daya (Sumber Daya Aparatur dan Anggaran) dan target capaian kinerja", "skor": "25.00" },
+            { "huruf": "C", "teks": "Kebijakan diimplementasikan sesuai dengan indikator kinerja, tetapi target sumber daya (Sumber Daya Aparatur dan Anggaran) dan target kinerja tidak tercapai", "skor": "50.00" },
+            { "huruf": "D", "teks": "Kebijakan diimplementasikan sesuai dengan indikator kinerja, target sumber daya (Sumber Daya Aparatur dan Anggaran), tetapi target kinerja tidak tercapai", "skor": "75.00" },
+            { "huruf": "E", "teks": "Kebijakan diimplementasikan sesuai dengan indikator kinerja, target sumber daya (Sumber Daya Aparatur dan Anggaran) dan target capaian kinerja", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "B3",
+          "teks": "Apakah ada mekanisme pengawasan dan akuntabilitas dalam pelaksanaan kebijakan?",
+          "bobot_relatif": "30.00",
+          "bukti_dukung": "Laporan pengawasan, hasil audit kebijakan",
+          "keterangan": "• Standar Baku: Sesuai format mekanisme pengawasan dan akuntabilitas resmi (SAKIP).\n• Kredibel: Diketahui atau diawasi oleh pejabat yang berwenang / APIP.",
+          "opsi": [
+            { "huruf": "A", "teks": "Tidak ada mekanisme pengawasan dan akuntabilitas dalam pelaksanaan kebijakan (tidak melampirkan dukung)", "skor": "0.00" },
+            { "huruf": "B", "teks": "Mekanisme pengawasan dan akuntabilitas dalam pelaksanaan kebijakan tidak tersedia", "skor": "25.00" },
+            { "huruf": "C", "teks": "Mekanisme pengawasan dan akuntabilitas dalam pelaksanaan kebijakan tersedia, tetapi tidak sesuai dengan standar baku dan tidak kredibel", "skor": "50.00" },
+            { "huruf": "D", "teks": "Mekanisme pengawasan dan akuntabilitas dalam pelaksanaan kebijakan tersedia, sesuai dengan standar baku, tetapi tidak kredibel", "skor": "75.00" },
+            { "huruf": "E", "teks": "Mekanisme pengawasan dan akuntabilitas dalam pelaksanaan kebijakan tersedia, sesuai dengan standar baku, dan kredibel", "skor": "100.00" }
+          ]
+        }
+      ]
+    },
+    {
+      "kode": "C",
+      "nama": "Evaluasi dan Keberlanjutan Kebijakan",
+      "bobot": "30.00",
+      "pertanyaan": [
+        {
+          "kode": "C1",
+          "teks": "Apakah kebijakan dievaluasi untuk perbaikan berkelanjutan?",
+          "bobot_relatif": "35.00",
+          "bukti_dukung": "Laporan evaluasi tahunan, dokumen perubahan kebijakan",
+          "keterangan": "• Rutin: Dilakukan berkala sesuai periode pelaporan resmi (Laporan Kinerja / LPPD).\n• Terstruktur: Memenuhi format dan sistematika baku Laporan Kinerja / LPPD.\n• Digunakan untuk Perbaikan: Kebijakan dilanjutkan atau disempurnakan dengan dokumen perubahan kebijakan (revisi regulasi, RKAKL).",
+          "opsi": [
+            { "huruf": "A", "teks": "Tidak pernah dilakukan evaluasi kebijakan untuk perbaikan berkelanjutan", "skor": "0.00" },
+            { "huruf": "B", "teks": "Evaluasi kebijakan untuk perbaikan berkelanjutan tidak relevan", "skor": "25.00" },
+            { "huruf": "C", "teks": "Evaluasi dilakukan secara rutin, tetapi tidak terstruktur, dan tidak digunakan untuk perbaikan kebijakan", "skor": "50.00" },
+            { "huruf": "D", "teks": "Evaluasi dilakukan secara rutin, terstruktur, tetapi tidak digunakan untuk perbaikan kebijakan", "skor": "75.00" },
+            { "huruf": "E", "teks": "Evaluasi dilakukan secara rutin, terstruktur, dan digunakan untuk perbaikan kebijakan", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "C2",
+          "teks": "Apakah kebijakan memiliki dampak yang terukur bagi masyarakat?",
+          "bobot_relatif": "35.00",
+          "bukti_dukung": "Data capaian indikator kebijakan, survei kepuasan masyarakat, survei yang dilakukan oleh lembaga independen",
+          "keterangan": "• Signifikan & Terukur: Capaian dampak riil terukur dan dibuktikan dengan data valid.\n• Diakui Pemangku Kepentingan: Manfaat diakui kelompok sasaran (survei kepuasan atau testimoni narasi/audio-visual).\n• Diakui Lembaga Independen: Adanya testimoni atau survei dari lembaga independen (NGO, LSM, akademisi).",
+          "opsi": [
+            { "huruf": "A", "teks": "Kebijakan tidak memiliki dampak yang terukur bagi masyarakat", "skor": "0.00" },
+            { "huruf": "B", "teks": "Kebijakan tidak memiliki data capaian indikator kebijakan, survei kepuasan masyarakat, atau survei yang dilakukan oleh lembaga independen", "skor": "25.00" },
+            { "huruf": "C", "teks": "Kebijakan berdampak secara signifikan dan terukur, tetapi tidak memiliki bukti pengakuan dari pemangku kepentingan dan tidak memiliki bukti pengakuan dari lembaga independen", "skor": "50.00" },
+            { "huruf": "D", "teks": "Kebijakan berdampak secara signifikan dan terukur, diakui oleh pemangku kepentingan, tetapi tidak memiliki bukti pengakuan dari lembaga independen", "skor": "75.00" },
+            { "huruf": "E", "teks": "Kebijakan berdampak secara signifikan dan terukur, diakui oleh pemangku kepentingan, dan diakui oleh lembaga independen", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "C3",
+          "teks": "Berkaitan dengan keberlanjutan kebijakan, apakah kebijakan selaras dengan kebijakan lain yang relevan?",
+          "bobot_relatif": "30.00",
+          "bukti_dukung": "Dokumen analisis/koordinasi keselarasan regulasi",
+          "keterangan": "• Keberlanjutan: Kebijakan bersifat visioner dan berjangka panjang (tidak sesaat).\n• Selaras: Tidak bertentangan dengan peraturan di atasnya.\n• Sinkron: Tidak bertentangan dengan peraturan yang setara.\n• Dokumen Analisis Keberlanjutan:\n  1. Perda/Pergub: Mengikuti Prosedur Klarifikasi (Perpres 87/2014).\n  2. UU/PP/Perpres/Permen: Analisis internal atau Pedoman Evaluasi Peraturan BPHN 2019.",
+          "opsi": [
+            { "huruf": "A", "teks": "Kebijakan tidak selaras dengan kebijakan lain yang relevan", "skor": "0.00" },
+            { "huruf": "B", "teks": "Kebijakan tidak selaras dan tidak sinkron tetapi memiliki dokumen analisis yang menunjukkan keberlanjutan kebijakan", "skor": "25.00" },
+            { "huruf": "C", "teks": "Kebijakan selaras, tetapi tidak sinkron dan tidak memiliki dokumen analisis yang menunjukkan keberlanjutan kebijakan", "skor": "50.00" },
+            { "huruf": "D", "teks": "Kebijakan selaras, sinkron, tetapi tidak memiliki dokumen analisis yang menunjukkan keberlanjutan kebijakan", "skor": "75.00" },
+            { "huruf": "E", "teks": "Kebijakan selaras, sinkron dan memiliki dokumen analisis yang menunjukkan keberlanjutan kebijakan", "skor": "100.00" }
+          ]
+        }
+      ]
+    },
+    {
+      "kode": "D",
+      "nama": "Transparansi dan Partisipasi Publik",
+      "bobot": "15.00",
+      "pertanyaan": [
+        {
+          "kode": "D1",
+          "teks": "Apakah informasi kebijakan dapat diakses oleh publik?",
+          "bobot_relatif": "50.00",
+          "bukti_dukung": "Publikasi kebijakan di situs/media sosial resmi, media massa (advertorial)",
+          "keterangan": "• Transparan: Informasi kebijakan terbuka dan dapat diketahui publik tanpa pembatasan yang tidak perlu.\n• Mudah Diakses: Dapat diperoleh dengan cepat tanpa hambatan teknis atau administratif.\n• Beragam Format: Disajikan dalam berbagai format (teks, PDF, infografis, video, atau media digital).",
+          "opsi": [
+            { "huruf": "A", "teks": "Informasi tidak tersedia untuk publik", "skor": "0.00" },
+            { "huruf": "B", "teks": "Informasi kebijakan tidak dapat diakses oleh publik", "skor": "25.00" },
+            { "huruf": "C", "teks": "Informasi kebijakan transparan, namun sulit diakses dan dalam format yang terbatas", "skor": "50.00" },
+            { "huruf": "D", "teks": "Informasi kebijakan transparan, mudah diakses, namun dalam format yang terbatas", "skor": "75.00" },
+            { "huruf": "E", "teks": "Informasi kebijakan transparan, mudah diakses, dan tersedia dalam berbagai format", "skor": "100.00" }
+          ]
+        },
+        {
+          "kode": "D2",
+          "teks": "Apakah ada mekanisme bagi masyarakat untuk memberikan masukan atau mengajukan keberatan?",
+          "bobot_relatif": "50.00",
+          "bukti_dukung": "Kanal aduan masyarakat, dokumentasi tanggapan terhadap masukan publik",
+          "keterangan": "• Jelas: Mekanisme masukan/keberatan terdefinisi dengan SOP yang transparan dan tidak ambigu.\n• Mudah Diakses: Kanal aduan (online/offline/SP4N-LAPOR) dapat dijangkau masyarakat tanpa hambatan memberatkan.\n• Riwayat Tanggapan: Tersedia catatan terbuka atas masukan publik dan respons resmi instansi.",
+          "opsi": [
+            { "huruf": "A", "teks": "Tidak ada mekanisme bagi masyarakat untuk memberikan masukan atau mengajukan keberatan", "skor": "0.00" },
+            { "huruf": "B", "teks": "Terdapat mekanisme tetapi tidak jelas dan sulit diakses", "skor": "25.00" },
+            { "huruf": "C", "teks": "Terdapat mekanisme yang jelas, tetapi sulit diakses", "skor": "50.00" },
+            { "huruf": "D", "teks": "Terdapat mekanisme yang jelas, mudah diakses, tetapi tidak memiliki dokumentasi riwayat tanggapan atas masukan publik", "skor": "75.00" },
+            { "huruf": "E", "teks": "Terdapat mekanisme yang jelas, mudah diakses, dan memiliki dokumentasi riwayat tanggapan atas masukan publik", "skor": "100.00" }
+          ]
+        }
+      ]
+    }
+  ],
+  "ambang_kualifikasi": [
+    { "min_nilai": "91.00", "kualifikasi": "Unggul" },
+    { "min_nilai": "80.00", "kualifikasi": "Sangat Baik" },
+    { "min_nilai": "65.00", "kualifikasi": "Baik" },
+    { "min_nilai": "50.00", "kualifikasi": "Cukup" },
+    { "min_nilai": "0.00", "kualifikasi": "Kurang" }
+  ]
+}

@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ikk_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ikk_user
+      POSTGRES_PASSWORD: ikk_password
+      POSTGRES_DB: ikk_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ikk_user -d ikk_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ikk_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://ikk_user:ikk_password@db:5432/ikk_db}
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-a-super-secret-random-key-in-production-min-32-chars}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - UPLOAD_DIR=/app/uploads
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-25}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-admin@#!}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply-ikk@komdigi.go.id}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+    volumes:
+      - ikk_uploads:/app/uploads
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ikk_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  ikk_uploads:
