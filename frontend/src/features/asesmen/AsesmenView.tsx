@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, type DragEvent, type ChangeEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Upload,
   HelpCircle,
@@ -330,38 +330,31 @@ export function AsesmenView() {
 
   const [localKebijakanList] = useState<KebijakanItem[]>(getStoredKebijakanList);
   const combinedKebijakanList = useMemo(() => {
-    if (kebijakanBackendResp?.data !== undefined) {
-      return kebijakanDbList.map((k) => {
-        const stored = localKebijakanList.find(
-          (loc) => loc.nama.toLowerCase() === k.nama.toLowerCase() || loc.id === k.id
-        );
-        return {
-          id: k.id,
-          nama: k.nama,
-          jenis_dasar_hukum: k.jenis_dasar_hukum,
-          nomor_dasar_hukum: k.nomor_dasar_hukum,
-          tanggal_penetapan: k.tanggal_penetapan,
-          dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
-          rekomendasi: k.rekomendasi || "",
-          satuan_kerja: k.satuan_kerja || undefined,
-          status_asesmen: k.status_asesmen || "DRAF",
-          skor_total: k.skor_total ?? stored?.skor_total,
-          kualifikasi: k.kualifikasi ?? stored?.kualifikasi,
-        };
-      });
-    }
-    if (peran !== "ANALIS") {
-      return localKebijakanList.filter((k) => k.status_asesmen && k.status_asesmen !== "DRAF");
-    }
-    return localKebijakanList;
-  }, [kebijakanBackendResp, kebijakanDbList, localKebijakanList, peran]);
+    return kebijakanDbList.map((k) => {
+      const stored = localKebijakanList.find(
+        (loc) => loc.nama.toLowerCase() === k.nama.toLowerCase() || loc.id === k.id
+      );
+      return {
+        id: k.id,
+        nama: k.nama,
+        jenis_dasar_hukum: k.jenis_dasar_hukum,
+        nomor_dasar_hukum: k.nomor_dasar_hukum,
+        tanggal_penetapan: k.tanggal_penetapan,
+        dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
+        rekomendasi: k.rekomendasi || "",
+        satuan_kerja: k.satuan_kerja || undefined,
+        status_asesmen: k.status_asesmen || "DRAF",
+        skor_total: k.skor_total ?? stored?.skor_total,
+        kualifikasi: k.kualifikasi ?? stored?.kualifikasi,
+      };
+    });
+  }, [kebijakanDbList, localKebijakanList]);
 
   const kebijakanList = combinedKebijakanList;
 
-  const [selectedKebijakan, setSelectedKebijakan] = useState<string>(() => {
+  const [rawSelectedKebijakan, setSelectedKebijakan] = useState<string>(() => {
     if (queryKebijakan) return queryKebijakan;
-    const stored = getStoredKebijakanList();
-    return stored[0]?.nama || "PM 5/2020 PSE Privat";
+    return "";
   });
 
   const [prevQuery, setPrevQuery] = useState(queryKebijakan);
@@ -371,6 +364,17 @@ export function AsesmenView() {
       setSelectedKebijakan(queryKebijakan);
     }
   }
+
+  const selectedKebijakan = useMemo(() => {
+    if (kebijakanList.length === 0) return "";
+    if (rawSelectedKebijakan) {
+      const matched = kebijakanList.find(
+        (k) => k.nama.toLowerCase() === rawSelectedKebijakan.toLowerCase()
+      );
+      if (matched) return matched.nama;
+    }
+    return kebijakanList[0].nama;
+  }, [kebijakanList, rawSelectedKebijakan]);
 
   // Cari objek kebijakan aktif dari backend
   const currentKebijakanObj = useMemo(() => {
@@ -1273,17 +1277,18 @@ export function AsesmenView() {
           <select
             value={selectedKebijakan}
             onChange={(e) => setSelectedKebijakan(e.target.value)}
-            className="rounded-lg border border-[#D5DEEF] bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-xs focus:border-[#395886] focus:ring-1 focus:ring-[#395886] max-w-xs sm:max-w-md truncate"
+            disabled={kebijakanList.length === 0}
+            className="rounded-lg border border-[#D5DEEF] bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-xs focus:border-[#395886] focus:ring-1 focus:ring-[#395886] max-w-xs sm:max-w-md truncate disabled:bg-slate-100 disabled:text-slate-500"
           >
-            {kebijakanList.map((k, idx) => (
-              <option key={k.id} value={k.nama}>
-                Kebijakan {idx + 1}: {k.nama} {k.skor_total === undefined ? "(Belum Diases)" : `(${k.skor_total.toFixed(2)})`}
-              </option>
-            ))}
-            {!kebijakanList.some((k) => k.nama === selectedKebijakan) && (
-              <option value={selectedKebijakan}>
-                Kebijakan: {selectedKebijakan} (Belum Diases)
-              </option>
+            {kebijakanList.length === 0 ? (
+              <option value="">-- Belum Ada Kebijakan --</option>
+            ) : (
+              kebijakanList.map((k, idx) => (
+                <option key={k.id} value={k.nama}>
+                  Kebijakan {idx + 1}: {k.nama}{" "}
+                  {k.skor_total === undefined ? "(Belum Diases)" : `(${k.skor_total.toFixed(2)})`}
+                </option>
+              ))
             )}
           </select>
 
@@ -1330,8 +1335,39 @@ export function AsesmenView() {
         </div>
       </div>
 
-      {/* Banner Notifikasi Jika Kebijakan Belum Dinilai */}
-      {(Object.keys(answers).length === 0 || Object.values(answers).every((a) => !a.opsiHuruf)) && (
+      {kebijakanList.length === 0 ? (
+        <div className="rounded-2xl border border-[#D5DEEF] bg-white p-10 text-center shadow-palette-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F0F3FA] text-[#395886] border border-[#B1C9EF]">
+            <FileText className="h-7 w-7" />
+          </div>
+          <h2 className="mt-4 text-base font-bold text-[#1E304B]">
+            {peran === "ANALIS"
+              ? "Belum Ada Kebijakan untuk Diases"
+              : "Belum Ada Pengajuan Asesmen Kebijakan"}
+          </h2>
+          <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-slate-600">
+            {peran === "ANALIS"
+              ? "Anda belum mendaftarkan kandidat kebijakan pada satuan kerja Anda. Silakan tambahkan kebijakan terlebih dahulu di menu Kebijakan Satker sebelum mengisi formulir asesmen mandiri."
+              : "Saat ini belum ada asesmen kebijakan yang diajukan oleh Analis Satuan Kerja untuk ditinjau."}
+          </p>
+          <div className="mt-5">
+            <Link
+              to="/kebijakan"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#395886] to-[#4E73A9] hover:from-[#2F4A72] hover:to-[#395886] px-4 py-2.5 text-xs font-bold text-white shadow-palette-sm transition-all"
+            >
+              <FileText className="h-4 w-4" />
+              <span>
+                {peran === "ANALIS"
+                  ? "Buka Menu Kebijakan Satker & Tambah Kebijakan"
+                  : "Lihat Daftar Kebijakan Satker"}
+              </span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Banner Notifikasi Jika Kebijakan Belum Dinilai */}
+          {(Object.keys(answers).length === 0 || Object.values(answers).every((a) => !a.opsiHuruf)) && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-xs text-amber-950 flex items-start gap-3 shadow-palette-xs animate-in fade-in duration-200">
           <div className="p-2 rounded-xl bg-amber-500 text-white flex-shrink-0">
             <Sparkles className="h-4.5 w-4.5" />
@@ -2908,6 +2944,8 @@ export function AsesmenView() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

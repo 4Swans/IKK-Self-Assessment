@@ -75,30 +75,29 @@ export function KebijakanView() {
   const [localKebijakanList, setLocalKebijakanList] = useState<KebijakanItem[]>(getStoredKebijakanList);
   const [newlyAddedPolicy, setNewlyAddedPolicy] = useState<KebijakanItem | null>(null);
 
-  // Turunkan kebijakanList dari data backend PostgreSQL jika tersedia, atau fallback lokal jika belum selesai memuat
+  // Turunkan kebijakanList langsung dari data backend PostgreSQL
   // Khusus Koordinator & Admin: hanya tampilkan kebijakan yang sudah diajukan (sembunyikan DRAF yang belum diases)
   const kebijakanList: KebijakanItem[] = React.useMemo(() => {
-    const rawItems: KebijakanItem[] =
-      kebijakanBackendResp?.data !== undefined
-        ? kebijakanBackendResp.data.map((k): KebijakanItem => {
-            const matched = localKebijakanList.find((loc) => loc.id === k.id || loc.nama === k.nama);
-            return {
-              id: k.id,
-              nama: k.nama,
-              jenis_dasar_hukum: k.jenis_dasar_hukum,
-              nomor_dasar_hukum: k.nomor_dasar_hukum,
-              tanggal_penetapan: k.tanggal_penetapan,
-              dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
-              rekomendasi: k.rekomendasi || "",
-              satuan_kerja: k.satuan_kerja || undefined,
-              pembuat_id: k.pembuat_id || undefined,
-              status_asesmen: k.status_asesmen || "DRAF",
-              skor_total: k.skor_total ?? matched?.skor_total ?? undefined,
-              kualifikasi: k.kualifikasi ?? matched?.kualifikasi ?? undefined,
-              jumlah_jawaban: k.jumlah_jawaban ?? 0,
-            };
-          })
-        : localKebijakanList;
+    const rawItems: KebijakanItem[] = (kebijakanBackendResp?.data || []).map(
+      (k): KebijakanItem => {
+        const matched = localKebijakanList.find((loc) => loc.id === k.id || loc.nama === k.nama);
+        return {
+          id: k.id,
+          nama: k.nama,
+          jenis_dasar_hukum: k.jenis_dasar_hukum,
+          nomor_dasar_hukum: k.nomor_dasar_hukum,
+          tanggal_penetapan: k.tanggal_penetapan,
+          dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
+          rekomendasi: k.rekomendasi || "",
+          satuan_kerja: k.satuan_kerja || undefined,
+          pembuat_id: k.pembuat_id || undefined,
+          status_asesmen: k.status_asesmen || "DRAF",
+          skor_total: k.skor_total ?? matched?.skor_total ?? undefined,
+          kualifikasi: k.kualifikasi ?? matched?.kualifikasi ?? undefined,
+          jumlah_jawaban: k.jumlah_jawaban ?? 0,
+        };
+      }
+    );
 
     if (currentUser.peran !== "ANALIS") {
       return rawItems.filter((item) => item.status_asesmen && item.status_asesmen !== "DRAF");
