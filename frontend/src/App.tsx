@@ -227,10 +227,10 @@ function AppShell() {
       <footer className="border-t border-[#D5DEEF] bg-white/80 backdrop-blur-xs py-4 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            Aplikasi Penyiapan Penilaian Mandiri IKK &bull; Sesuai Pedoman LAN RI 2025 &amp; Template Form 2026.
+            Xaka IKK Self-Assessment &bull; Ruang Kerja Penyiapan Penilaian Mandiri 2026.
           </span>
           <span className="font-medium text-slate-500">
-            Pusat Pembinaan Analis Kebijakan (Pusaka) &bull; LAN RI
+            Xaka IKK Self-Assessment Workspace
           </span>
         </div>
       </footer>
@@ -299,7 +299,7 @@ function BerandaView() {
               <span>
                 {isAuthenticated
                   ? `Sesi Aktif: ${user.nama} (${peran})`
-                  : "Portal Informasi Publik &bull; Penyiapan IKK 2026"}
+                  : "Xaka IKK Self-Assessment &bull; Penyiapan IKK 2026"}
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">

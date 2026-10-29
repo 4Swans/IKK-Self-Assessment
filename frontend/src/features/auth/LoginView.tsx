@@ -236,16 +236,15 @@ export function LoginView() {
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-[#F0F3FA] px-3 py-0.5 text-[11px] font-bold text-[#395886] border border-[#B1C9EF]">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Portal Resmi Pra-SI IKK 2026 &bull; Komdigi</span>
+                <span>Xaka IKK Self-Assessment &bull; 2026</span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[#1E304B]">
                 {activeTab === "LOGIN"
-                  ? "Masuk ke Sistem IKK"
-                  : "Registrasi Akun Satker"}
+                  ? "Masuk ke Xaka IKK"
+                  : "Registrasi Akun Pengguna"}
               </h1>
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                Penyiapan Penilaian Mandiri Indeks Kualitas Kebijakan (IKK) LAN RI
-                bagi Satuan Kerja Kementerian Komunikasi dan Digital
+                Aplikasi Ruang Kerja Penyiapan Penilaian Mandiri Indeks Kualitas Kebijakan (IKK)
               </p>
             </div>
           </div>
@@ -728,7 +727,7 @@ export function LoginView() {
           {/* Security & Official Notice Footnote */}
           <div className="mt-8 border-t border-[#D5DEEF]/70 pt-4 text-center">
             <p className="text-[11px] text-slate-400">
-              Autentikasi aman terenkripsi &bull; Terhubung ke Basis Data Instansi Komdigi
+              Xaka IKK Self-Assessment &bull; Ruang Kerja Penilaian Mandiri Internal
             </p>
           </div>
         </div>
