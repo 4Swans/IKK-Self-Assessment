@@ -379,7 +379,7 @@ async def hapus_kebijakan(
     if (
         current_user.peran == "ANALIS"
         and item.satuan_kerja
-        and item.satuan_kerja != current_user.satuan_kerja
+        and not satker_cocok(item.satuan_kerja, current_user.satuan_kerja)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

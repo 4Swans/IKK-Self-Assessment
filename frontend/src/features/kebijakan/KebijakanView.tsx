@@ -12,6 +12,9 @@ import {
   Filter,
   Search,
   RotateCcw,
+  Trash2,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -30,6 +33,7 @@ import { useDaftarPeriodeApiV1PeriodeGet } from "../../api/endpoints/periode/per
 import {
   useDaftarKebijakanApiV1KebijakanGet,
   useTambahKebijakanApiV1KebijakanPost,
+  useHapusKebijakanApiV1KebijakanKebijakanIdDelete,
 } from "../../api/endpoints/kebijakan-strategis/kebijakan-strategis";
 
 export function KebijakanView() {
@@ -71,6 +75,44 @@ export function KebijakanView() {
   );
 
   const tambahMutation = useTambahKebijakanApiV1KebijakanPost();
+  const hapusMutation = useHapusKebijakanApiV1KebijakanKebijakanIdDelete();
+
+  const [deletingKebijakan, setDeletingKebijakan] = useState<KebijakanItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!deletingKebijakan) return;
+    setIsDeleting(true);
+    try {
+      await hapusMutation.mutateAsync({ kebijakanId: deletingKebijakan.id });
+      const remaining = getStoredKebijakanList().filter((k) => k.id !== deletingKebijakan.id);
+      setLocalKebijakanList(remaining);
+      saveStoredKebijakanList(remaining);
+      if (newlyAddedPolicy?.id === deletingKebijakan.id) {
+        setNewlyAddedPolicy(null);
+      }
+      await refetchKebijakan();
+      queryClient.invalidateQueries();
+      setToast({
+        show: true,
+        type: "success",
+        title: "Kebijakan Telah Dihapus",
+        message: `Kebijakan "${deletingKebijakan.nama}" beserta data asesmennya telah berhasil dihapus dari sistem.`,
+      });
+      setDeletingKebijakan(null);
+    } catch (err: any) {
+      setToast({
+        show: true,
+        type: "error",
+        title: "Gagal Menghapus Kebijakan",
+        message:
+          err?.response?.data?.detail ||
+          "Terjadi kesalahan saat menghapus data kebijakan.",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const [localKebijakanList, setLocalKebijakanList] = useState<KebijakanItem[]>(getStoredKebijakanList);
   const [newlyAddedPolicy, setNewlyAddedPolicy] = useState<KebijakanItem | null>(null);
@@ -923,52 +965,150 @@ export function KebijakanView() {
                   {item.rekomendasi || "-"}
                 </td>
                 <td className="px-4 py-4 text-center whitespace-nowrap">
-                  {item.status_asesmen === "DIAJUKAN" && (isKoordinator || isAdmin) ? (
+                  <div className="inline-flex items-center justify-center gap-2">
+                    {item.status_asesmen === "DIAJUKAN" && (isKoordinator || isAdmin) ? (
+                      <button
+                        type="button"
+                        onClick={() => navigateToAsesmen(item)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#395886] to-[#4E73A9] hover:from-[#2E486F] hover:to-[#395886] px-3.5 py-1.5 text-xs font-bold text-white shadow-palette-xs transition-all hover:scale-[1.02] cursor-pointer"
+                        title={`Tinjau dan verifikasi pengajuan asesmen ${item.nama}`}
+                      >
+                        <ClipboardCheck className="h-3.5 w-3.5" />
+                        <span>Tinjau Pengajuan</span>
+                      </button>
+                    ) : item.skor_total === undefined && item.status_asesmen === "DRAF" ? (
+                      <button
+                        type="button"
+                        onClick={() => navigateToAsesmen(item)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#395886] to-[#4E73A9] hover:from-[#2E486F] hover:to-[#395886] px-3.5 py-1.5 text-xs font-bold text-white shadow-palette-xs transition-all hover:scale-[1.02] cursor-pointer"
+                        title={`Lakukan penilaian mandiri untuk ${item.nama}`}
+                      >
+                        <ClipboardCheck className="h-3.5 w-3.5" />
+                        <span>Lakukan Asesmen</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => navigateToAsesmen(item)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#D5DEEF] bg-[#F0F3FA] hover:bg-[#D5DEEF] px-3 py-1.5 text-xs font-semibold text-[#395886] transition-all cursor-pointer"
+                        title={`Buka atau perbarui penilaian mandiri untuk ${item.nama}`}
+                      >
+                        <FileEdit className="h-3.5 w-3.5 text-[#395886]" />
+                        <span>
+                          {item.status_asesmen === "DIAJUKAN"
+                            ? "Lihat Pengajuan"
+                            : item.status_asesmen === "PERLU_PERBAIKAN"
+                            ? "Perbaiki Asesmen"
+                            : item.status_asesmen === "DISETUJUI" ||
+                              item.status_asesmen === "TERKIRIM_SI_IKK"
+                            ? "Lihat Hasil"
+                            : "Lanjutkan Asesmen"}
+                        </span>
+                      </button>
+                    )}
+
+                    {/* Tombol Hapus Kebijakan */}
                     <button
                       type="button"
-                      onClick={() => navigateToAsesmen(item)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#395886] to-[#4E73A9] hover:from-[#2E486F] hover:to-[#395886] px-3.5 py-1.5 text-xs font-bold text-white shadow-palette-xs transition-all hover:scale-[1.02] cursor-pointer"
-                      title={`Tinjau dan verifikasi pengajuan asesmen ${item.nama}`}
+                      onClick={() => setDeletingKebijakan(item)}
+                      className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 p-1.5 text-rose-600 hover:text-rose-700 transition-colors cursor-pointer"
+                      title={`Hapus kebijakan ${item.nama}`}
                     >
-                      <ClipboardCheck className="h-3.5 w-3.5" />
-                      <span>Tinjau Pengajuan</span>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                  ) : item.skor_total === undefined && item.status_asesmen === "DRAF" ? (
-                    <button
-                      type="button"
-                      onClick={() => navigateToAsesmen(item)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#395886] to-[#4E73A9] hover:from-[#2E486F] hover:to-[#395886] px-3.5 py-1.5 text-xs font-bold text-white shadow-palette-xs transition-all hover:scale-[1.02] cursor-pointer"
-                      title={`Lakukan penilaian mandiri untuk ${item.nama}`}
-                    >
-                      <ClipboardCheck className="h-3.5 w-3.5" />
-                      <span>Lakukan Asesmen</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => navigateToAsesmen(item)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#D5DEEF] bg-[#F0F3FA] hover:bg-[#D5DEEF] px-3 py-1.5 text-xs font-semibold text-[#395886] transition-all cursor-pointer"
-                      title={`Buka atau perbarui penilaian mandiri untuk ${item.nama}`}
-                    >
-                      <FileEdit className="h-3.5 w-3.5 text-[#395886]" />
-                      <span>
-                        {item.status_asesmen === "DIAJUKAN"
-                          ? "Lihat Pengajuan"
-                          : item.status_asesmen === "PERLU_PERBAIKAN"
-                          ? "Perbaiki Asesmen"
-                          : item.status_asesmen === "DISETUJUI" ||
-                            item.status_asesmen === "TERKIRIM_SI_IKK"
-                          ? "Lihat Hasil"
-                          : "Lanjutkan Asesmen"}
-                      </span>
-                    </button>
-                  )}
+                  </div>
                 </td>
               </tr>
             )))}
           </tbody>
         </table>
       </div>
+
+      {/* Modal Konfirmasi Hapus Kebijakan */}
+      {deletingKebijakan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl border border-rose-200 bg-white p-6 shadow-palette-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2.5 text-rose-700">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#1E304B]">Hapus Data Kebijakan</h3>
+                  <p className="text-[11px] text-slate-500 font-normal">Konfirmasi penghapusan kebijakan &amp; asesmen</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingKebijakan(null)}
+                disabled={isDeleting}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Apakah Anda yakin ingin menghapus kebijakan berikut beserta seluruh jawaban dan bukti dukung asesmennya?
+            </p>
+
+            <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-3.5 space-y-2 text-xs">
+              <div className="flex justify-between items-start gap-2 border-b border-rose-100/70 pb-2">
+                <span className="text-slate-500 flex-shrink-0">Nama Kebijakan:</span>
+                <span className="font-bold text-[#1E304B] text-right">{deletingKebijakan.nama}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-rose-100/70 pb-2">
+                <span className="text-slate-500">Dasar Hukum:</span>
+                <span className="font-mono font-semibold text-slate-700">
+                  {deletingKebijakan.jenis_dasar_hukum} {deletingKebijakan.nomor_dasar_hukum}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Satuan Kerja:</span>
+                <span className="font-medium text-slate-800 text-right max-w-[220px] truncate" title={deletingKebijakan.satuan_kerja}>
+                  {deletingKebijakan.satuan_kerja || currentUser.satuan_kerja || "-"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-[11px] text-amber-900 leading-relaxed">
+              <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>Peringatan:</strong> Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingKebijakan(null)}
+                disabled={isDeleting}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-bold text-white shadow-palette-sm disabled:opacity-60 transition-all cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Ya, Hapus Kebijakan</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
