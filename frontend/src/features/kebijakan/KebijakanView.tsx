@@ -276,8 +276,8 @@ export function KebijakanView() {
         setToast({
           show: true,
           type: "success",
-          title: "Kebijakan Tersimpan ke PostgreSQL",
-          message: `Kebijakan "${createdItem.nama}" berhasil disimpan ke database. Asesmen mandiri otomatis diinisialisasi dalam status DRAF.`,
+          title: "Kebijakan Telah Ditambahkan",
+          message: `Kebijakan "${createdItem.nama}" telah ditambahkan. Silakan lakukan asesmen mandiri untuk melengkapi indikator dan berkas bukti dukung.`,
           actionLabel: "Lakukan Asesmen",
           onAction: () => navigateToAsesmen(createdItem),
         });
@@ -311,8 +311,8 @@ export function KebijakanView() {
     setToast({
       show: true,
       type: "success",
-      title: "Kebijakan Berhasil Ditambahkan",
-      message: `Kebijakan "${newItem.nama}" telah berhasil ditambahkan dan belum memiliki penilaian. Silakan lakukan asesmen mandiri untuk melengkapi indikator dan berkas bukti dukung.`,
+      title: "Kebijakan Telah Ditambahkan",
+      message: `Kebijakan "${newItem.nama}" telah ditambahkan. Silakan lakukan asesmen mandiri untuk melengkapi indikator dan berkas bukti dukung.`,
       actionLabel: "Lakukan Asesmen",
       onAction: () => navigateToAsesmen(newItem),
     });
