@@ -39,7 +39,7 @@ import { ToastNotification } from "../../components/ui/ToastNotification";
 
 export function PenggunaManagementView() {
   const queryClient = useQueryClient();
-  const { user: currentUser, isAdmin, isKoordinator } = useAuth();
+  const { user: currentUser, isAdmin, isKoordinator, refreshProfil } = useAuth();
   const canAccess = isAdmin || isKoordinator;
 
   // Active Tab: "VERIFIKASI" atau "SEMUA"
@@ -242,7 +242,11 @@ export function PenggunaManagementView() {
         },
       });
 
-      await Promise.all([refetchSemua(), refetchMenunggu()]);
+      await Promise.all([
+        refetchSemua(),
+        refetchMenunggu(),
+        editingUser.id === currentUser.id ? refreshProfil() : Promise.resolve(),
+      ]);
       queryClient.invalidateQueries();
       setEditingUser(null);
       showToast({

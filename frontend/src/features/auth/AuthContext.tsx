@@ -16,44 +16,39 @@ export interface PenggunaProfil {
   status_verifikasi?: string;
 }
 
-const DAFTAR_PENGGUNA: Record<Peran, PenggunaProfil> = {
-  ANALIS: {
-    id: "428abee6-116d-43a2-8bd3-1a95d3ad56f1",
-    nama: "Ahmad Fauzi",
-    username: "analis",
-    email: "analis@komdigi.go.id",
-    nip: "199208152018011002",
-    jabatan: "Analis Kebijakan Ahli Pertama",
-    peran: "ANALIS",
-    instansi: "Kementerian Komunikasi dan Digital",
-    satuan_kerja: "Direktorat Aplikasi Pemerintah Digital",
-    status_verifikasi: "AKTIF",
-  },
-  KOORDINATOR: {
-    id: "5dd4e555-29c8-4493-8ad2-f9e816826f60",
-    nama: "Siti Rahmawati",
-    username: "koordinator",
-    email: "koordinator@komdigi.go.id",
-    nip: "197609251999032001",
-    jabatan: "Koordinator Tim Penilai Mandiri IKK",
-    peran: "KOORDINATOR",
-    instansi: "Kementerian Komunikasi dan Digital",
-    satuan_kerja: "Pusat Kebijakan Strategis (PUSAKA)",
-    status_verifikasi: "AKTIF",
-  },
-  ADMIN: {
-    id: "e94ceeae-7446-4b41-a3de-d6511ab851ff",
-    nama: "Administrator Sistem",
-    username: "admin",
-    email: "admin@komdigi.go.id",
-    nip: "198501012010121002",
-    jabatan: "Pengelola Sistem Informasi Penilaian",
-    peran: "ADMIN",
-    instansi: "Kementerian Komunikasi dan Digital",
-    satuan_kerja: "Pusat Kebijakan Strategis (PUSAKA)",
-    status_verifikasi: "AKTIF",
-  },
+const DEFAULT_JABATAN: Record<Peran, string> = {
+  ANALIS: "Analis Kebijakan Satuan Kerja",
+  KOORDINATOR: "Koordinator Tim Penilai Mandiri IKK",
+  ADMIN: "Administrator Sistem",
 };
+
+const EMPTY_USER_PROFIL: PenggunaProfil = {
+  id: "",
+  nama: "Memuat Profil...",
+  username: "",
+  email: "",
+  nip: "-",
+  jabatan: "Fungsional Instansi",
+  peran: "ANALIS",
+  instansi: "Kementerian Komunikasi dan Digital",
+  satuan_kerja: "",
+  status_verifikasi: "AKTIF",
+};
+
+function loadSavedUserProfile(): PenggunaProfil {
+  try {
+    const raw = localStorage.getItem("ikk_user_profile");
+    if (raw) {
+      const parsed = JSON.parse(raw) as PenggunaProfil;
+      if (parsed && parsed.id && parsed.nama) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Abaikan jika JSON di localStorage tidak valid
+  }
+  return EMPTY_USER_PROFIL;
+}
 
 interface AuthContextType {
   peran: Peran;
@@ -62,6 +57,7 @@ interface AuthContextType {
   isAuthLoading: boolean;
   loginDenganUsername: (username: string, kataSandi: string) => Promise<void>;
   keluar: () => Promise<void>;
+  refreshProfil: () => Promise<void>;
   isAnalis: boolean;
   isKoordinator: boolean;
   isAdmin: boolean;
@@ -75,9 +71,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [currentUser, setCurrentUser] = useState<PenggunaProfil>(() =>
+    loadSavedUserProfile()
+  );
+
   const [peran, setPeranState] = useState<Peran>(() => {
-    const saved = localStorage.getItem("ikk_active_role");
-    return (saved as Peran) || "ANALIS";
+    const savedProfile = loadSavedUserProfile();
+    if (savedProfile.id && savedProfile.peran) {
+      return savedProfile.peran;
+    }
+    const savedRole = localStorage.getItem("ikk_active_role");
+    return (savedRole as Peran) || "ANALIS";
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -86,9 +90,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
 
-  const [currentUser, setCurrentUser] = useState<PenggunaProfil>(() => {
-    return DAFTAR_PENGGUNA[peran] || DAFTAR_PENGGUNA.ANALIS;
-  });
+  const simpanProfilKeState = (p: any, fallbackUsername = "") => {
+    const role = (p.peran as Peran) || "ANALIS";
+    const uname = p.username || fallbackUsername;
+    const profilBaru: PenggunaProfil = {
+      id: p.id,
+      nama: p.nama,
+      username: uname,
+      email: p.email || (uname ? `${uname}@komdigi.go.id` : ""),
+      nip: p.nip || "-",
+      jabatan: DEFAULT_JABATAN[role] || "Fungsional Instansi",
+      peran: role,
+      instansi: p.instansi || "Kementerian Komunikasi dan Digital",
+      satuan_kerja: p.satuan_kerja || "Pusat Kebijakan Strategis (PUSAKA)",
+      status_verifikasi: p.status_verifikasi || "AKTIF",
+    };
+    setPeranState(role);
+    setCurrentUser(profilBaru);
+    localStorage.setItem("ikk_active_role", role);
+    localStorage.setItem("ikk_user_profile", JSON.stringify(profilBaru));
+  };
 
   const loginDenganUsername = async (username: string, kataSandi: string) => {
     const resp = await axios.post("/api/v1/auth/masuk", {
@@ -100,22 +121,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("ikk_token", token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       setIsAuthenticated(true);
-      const p = resp.data.pengguna;
-      const role = (p.peran as Peran) || "ANALIS";
-      setPeranState(role);
-      localStorage.setItem("ikk_active_role", role);
-      setCurrentUser({
-        id: p.id,
-        nama: p.nama,
-        username: p.username || username,
-        email: p.email || `${username}@komdigi.go.id`,
-        nip: p.nip || DAFTAR_PENGGUNA[role]?.nip || "198801012015011001",
-        jabatan: DAFTAR_PENGGUNA[role]?.jabatan || "Fungsional Instansi",
-        peran: role,
-        instansi: p.instansi || "Kementerian Komunikasi dan Digital",
-        satuan_kerja: p.satuan_kerja || "Pusat Kebijakan Strategis (PUSAKA)",
-        status_verifikasi: p.status_verifikasi || "AKTIF",
-      });
+      simpanProfilKeState(resp.data.pengguna, username);
+    }
+  };
+
+  const refreshProfil = async () => {
+    const existingToken = localStorage.getItem("ikk_token");
+    if (!existingToken) return;
+    axios.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
+    const resp = await axios.get("/api/v1/auth/saya");
+    if (resp.data) {
+      simpanProfilKeState(resp.data);
     }
   };
 
@@ -127,8 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       localStorage.removeItem("ikk_token");
       localStorage.removeItem("ikk_active_role");
+      localStorage.removeItem("ikk_user_profile");
       delete axios.defaults.headers.common["Authorization"];
       setIsAuthenticated(false);
+      setCurrentUser(EMPTY_USER_PROFIL);
     }
   };
 
@@ -150,28 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const resp = await axios.get("/api/v1/auth/saya");
         if (isMounted && resp.data) {
-          const p = resp.data;
-          const role = (p.peran as Peran) || "ANALIS";
           setIsAuthenticated(true);
-          setPeranState(role);
-          setCurrentUser({
-            id: p.id,
-            nama: p.nama,
-            username: p.username,
-            email: p.email,
-            nip: p.nip || DAFTAR_PENGGUNA[role]?.nip || "198801012015011001",
-            jabatan: DAFTAR_PENGGUNA[role]?.jabatan || "Fungsional Instansi",
-            peran: role,
-            instansi: p.instansi || "Kementerian Komunikasi dan Digital",
-            satuan_kerja: p.satuan_kerja || "Pusat Kebijakan Strategis (PUSAKA)",
-            status_verifikasi: p.status_verifikasi || "AKTIF",
-          });
+          simpanProfilKeState(resp.data);
         }
       } catch {
         if (isMounted) {
           localStorage.removeItem("ikk_token");
+          localStorage.removeItem("ikk_active_role");
+          localStorage.removeItem("ikk_user_profile");
           delete axios.defaults.headers.common["Authorization"];
           setIsAuthenticated(false);
+          setCurrentUser(EMPTY_USER_PROFIL);
         }
       } finally {
         if (isMounted) {
@@ -236,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthLoading,
         loginDenganUsername,
         keluar,
+        refreshProfil,
         isAnalis,
         isKoordinator,
         isAdmin,
