@@ -1,33 +1,18 @@
-import re
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
-
-KOMDIGI_EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@komdigi\.go\.id$", re.IGNORECASE)
+from pydantic import BaseModel, Field
 
 
 class PenggunaDaftar(BaseModel):
     nama: str = Field(..., min_length=2, max_length=255, description="Nama Lengkap Pegawai")
-    username: str | None = Field(
-        default=None, max_length=100, description="Opsional (otomatis dari email)"
-    )
+    username: str | None = Field(default=None, max_length=100, description="Username login")
     nip: str = Field(..., min_length=9, max_length=50, description="Nomor Induk Pegawai (NIP)")
-    email: str = Field(..., description="Alamat email kedinasan wajib @komdigi.go.id")
+    email: str | None = Field(default=None, description="Alamat email (opsional)")
     satuan_kerja: str = Field(..., min_length=2, max_length=255, description="Satuan Kerja asal")
     password: str = Field(..., min_length=6, max_length=100)
     peran: str = Field(default="ANALIS", pattern="^(ANALIS|KOORDINATOR|ADMIN)$")
     instansi: str = Field(default="Kementerian Komunikasi dan Digital", max_length=255)
-
-    @field_validator("email")
-    @classmethod
-    def validasi_email_komdigi(cls, v: str) -> str:
-        clean = v.strip().lower()
-        if not KOMDIGI_EMAIL_REGEX.match(clean):
-            raise ValueError(
-                "Wajib menggunakan alamat email kedinasan resmi berdomain @komdigi.go.id"
-            )
-        return clean
 
 
 class VerifikasiOtpPayload(BaseModel):

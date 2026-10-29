@@ -479,7 +479,7 @@ export function PenggunaManagementView() {
               </h2>
             </div>
             <span className="text-[11px] text-amber-700 font-medium">
-              Wajib validasi keabsahan NIP &amp; Email Komdigi
+              Wajib validasi kesesuaian NIP &amp; Satuan Kerja
             </span>
           </div>
 
@@ -507,7 +507,7 @@ export function PenggunaManagementView() {
                   <tr>
                     <th scope="col" className="px-5 py-3.5">Nama &amp; NIP</th>
                     <th scope="col" className="px-5 py-3.5">Satuan Kerja (Satker)</th>
-                    <th scope="col" className="px-5 py-3.5">Email Komdigi &amp; Username</th>
+                    <th scope="col" className="px-5 py-3.5">Username</th>
                     <th scope="col" className="px-5 py-3.5">Waktu Registrasi</th>
                     <th scope="col" className="px-5 py-3.5 text-center">Tindakan Pusaka</th>
                   </tr>
@@ -531,19 +531,9 @@ export function PenggunaManagementView() {
                       </td>
 
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1 text-slate-800 font-semibold">
-                          <Mail className="h-3 w-3 text-emerald-600" />
-                          <span>{p.email}</span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            <CheckCircle2 className="h-2.5 w-2.5" />
-                            <span>OTP Email Terverifikasi</span>
-                          </span>
-                          <span className="font-mono text-[10px] text-slate-400">
-                            @{p.username}
-                          </span>
-                        </div>
+                        <span className="font-mono text-xs font-bold text-[#1E304B] bg-[#F0F3FA] px-2.5 py-1 rounded-lg border border-[#D5DEEF]">
+                          @{p.username}
+                        </span>
                       </td>
 
                       <td className="px-5 py-3.5 text-slate-500 text-[11px]">
@@ -617,7 +607,7 @@ export function PenggunaManagementView() {
                 <thead className="bg-[#F0F3FA] text-[#395886] font-bold uppercase tracking-wider">
                   <tr>
                     <th scope="col" className="px-5 py-3.5">Nama &amp; Satuan Kerja</th>
-                    <th scope="col" className="px-5 py-3.5">NIP &amp; Email</th>
+                    <th scope="col" className="px-5 py-3.5">NIP &amp; Username</th>
                     <th scope="col" className="px-5 py-3.5 text-center">Peran</th>
                     <th scope="col" className="px-5 py-3.5 text-center">Status Verifikasi</th>
                     <th scope="col" className="px-5 py-3.5 text-center">Aksi</th>
@@ -658,7 +648,7 @@ export function PenggunaManagementView() {
 
                         <td className="px-5 py-3.5">
                           <div className="font-mono text-slate-800 font-semibold">{p.nip || "-"}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">{p.email || p.username}</div>
+                          <div className="text-[11px] font-mono text-slate-500 mt-0.5">@{p.username}</div>
                         </td>
 
                         <td className="px-5 py-3.5 text-center">
@@ -986,27 +976,15 @@ export function PenggunaManagementView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Email Dinas</label>
-                  <input
-                    type="email"
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    placeholder="nama@komdigi.go.id"
-                    className="w-full rounded-xl border border-[#D5DEEF] px-3.5 py-2 text-slate-900 focus:border-[#628ECB] focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Instansi</label>
-                  <input
-                    type="text"
-                    required
-                    value={editInstansi}
-                    onChange={(e) => setEditInstansi(e.target.value)}
-                    className="w-full rounded-xl border border-[#D5DEEF] px-3.5 py-2 text-slate-900 focus:border-[#628ECB] focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF]"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Instansi</label>
+                <input
+                  type="text"
+                  required
+                  value={editInstansi}
+                  onChange={(e) => setEditInstansi(e.target.value)}
+                  className="w-full rounded-xl border border-[#D5DEEF] px-3.5 py-2 text-slate-900 focus:border-[#628ECB] focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF]"
+                />
               </div>
 
               {/* Setel Ulang Password */}
@@ -1169,26 +1147,15 @@ export function PenggunaManagementView() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Email Komdigi</label>
+                  <label className="block font-bold text-slate-700 mb-1">Instansi</label>
                   <input
-                    type="email"
-                    value={addEmail}
-                    onChange={(e) => setAddEmail(e.target.value)}
-                    placeholder="pegawai@komdigi.go.id"
+                    type="text"
+                    required
+                    value={addInstansi}
+                    onChange={(e) => setAddInstansi(e.target.value)}
                     className="w-full rounded-xl border border-[#D5DEEF] px-3.5 py-2 text-slate-900 focus:border-[#628ECB] focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF]"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Instansi</label>
-                <input
-                  type="text"
-                  required
-                  value={addInstansi}
-                  onChange={(e) => setAddInstansi(e.target.value)}
-                  className="w-full rounded-xl border border-[#D5DEEF] px-3.5 py-2 text-slate-900 focus:border-[#628ECB] focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF]"
-                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#D5DEEF]/70">

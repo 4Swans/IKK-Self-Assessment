@@ -22,8 +22,8 @@ export interface PenggunaDaftar {
    * @maxLength 50
    */
   nip: string;
-  /** Alamat email kedinasan wajib @komdigi.go.id */
-  email: string;
+  /** Alamat email (opsional) */
+  email?: string | null;
   /**
    * Satuan Kerja asal
    * @minLength 2

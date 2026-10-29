@@ -16,29 +16,18 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
-  Mail,
-  KeyRound,
-  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
-import {
-  useDaftarApiV1AuthDaftarPost,
-  useVerifikasiOtpApiV1AuthVerifikasiOtpPost,
-  useKirimUlangOtpApiV1AuthKirimUlangOtpPost,
-} from "../../api/endpoints/autentikasi/autentikasi";
+import { useDaftarApiV1AuthDaftarPost } from "../../api/endpoints/autentikasi/autentikasi";
 import {
   DAFTAR_SATKER_KOMDIGI,
   DAFTAR_SATKER_GROUPED,
 } from "./satkerList";
 
-const KOMDIGI_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@komdigi\.go\.id$/i;
-
 export function LoginView() {
   const navigate = useNavigate();
   const { loginDenganUsername, isAuthenticated } = useAuth();
   const daftarMutation = useDaftarApiV1AuthDaftarPost();
-  const verifikasiOtpMutation = useVerifikasiOtpApiV1AuthVerifikasiOtpPost();
-  const kirimUlangOtpMutation = useKirimUlangOtpApiV1AuthKirimUlangOtpPost();
 
   // Tab: "LOGIN" atau "REGISTER"
   const [activeTab, setActiveTab] = useState<"LOGIN" | "REGISTER">("LOGIN");
@@ -50,9 +39,8 @@ export function LoginView() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // State Form Registrasi Satker
+  // State Form Registrasi Satker (Tanpa Email & Tanpa OTP)
   const [regNama, setRegNama] = useState("");
-  const [regEmail, setRegEmail] = useState("");
   const [regNip, setRegNip] = useState("");
   const [regUsername, setRegUsername] = useState("");
   const [regUsernameEdited, setRegUsernameEdited] = useState(false);
@@ -63,24 +51,9 @@ export function LoginView() {
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
 
-  // State Tahap 1: Menunggu Verifikasi Kode OTP Email @komdigi.go.id
-  const [otpPendingData, setOtpPendingData] = useState<{
-    nama: string;
-    email: string;
-    nip: string;
-    satuan_kerja: string;
-    username: string;
-    email_terkirim_smtp: boolean;
-    kode_otp_simulasi?: string | null;
-  } | null>(null);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [otpInfoMessage, setOtpInfoMessage] = useState<string | null>(null);
-
-  // State Tahap 2: Selesai OTP, Menunggu Persetujuan Admin (Human-in-the-Loop)
+  // State Selesai Registrasi: Menunggu Persetujuan Admin/Koordinator
   const [regSuccessData, setRegSuccessData] = useState<{
     nama: string;
-    email: string;
     nip: string;
     satuan_kerja: string;
     username: string;
@@ -118,19 +91,22 @@ export function LoginView() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleEmailChange = (val: string) => {
-    const clean = val.trim().toLowerCase();
-    setRegEmail(clean);
+  const handleNamaChange = (val: string) => {
+    setRegNama(val);
     if (!regUsernameEdited) {
-      const prefix = clean.split("@")[0]?.replace(/[^a-z0-9._-]/g, "") || "";
-      setRegUsername(prefix);
+      const generated = val
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, ".");
+      setRegUsername(generated);
     }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password) {
-      setErrorMessage("Email kedinasan / nama pengguna dan kata sandi wajib diisi.");
+      setErrorMessage("Nama pengguna (username) dan kata sandi wajib diisi.");
       return;
     }
 
@@ -143,7 +119,7 @@ export function LoginView() {
     } catch (err: any) {
       const detail =
         err?.response?.data?.detail ||
-        "Gagal masuk. Periksa kembali email kedinasan / nama pengguna dan kata sandi Anda.";
+        "Gagal masuk. Periksa kembali nama pengguna (username) dan kata sandi Anda.";
       setErrorMessage(detail);
     } finally {
       setIsLoading(false);
@@ -166,24 +142,15 @@ export function LoginView() {
       return;
     }
 
-    const cleanEmail = regEmail.trim().toLowerCase();
-    if (!KOMDIGI_EMAIL_REGEX.test(cleanEmail)) {
-      triggerRegError(
-        "Wajib menggunakan alamat email kedinasan resmi berdomain @komdigi.go.id (contoh: nama.pegawai@komdigi.go.id)."
-      );
-      return;
-    }
-
     const cleanNip = regNip.replace(/\s+/g, "");
     if (!/^\d{18}$/.test(cleanNip)) {
       triggerRegError("NIP harus terdiri dari 18 digit angka resmi ASN.");
       return;
     }
 
-    const finalUsername =
-      regUsername.trim().toLowerCase() || cleanEmail.split("@")[0].toLowerCase();
+    const finalUsername = regUsername.trim().toLowerCase();
     if (finalUsername.length < 3) {
-      triggerRegError("Nama pengguna minimal 3 karakter huruf/angka.");
+      triggerRegError("Username login minimal 3 karakter huruf/angka.");
       return;
     }
 
@@ -212,7 +179,6 @@ export function LoginView() {
       const resp = await daftarMutation.mutateAsync({
         data: {
           nama: regNama.trim(),
-          email: cleanEmail,
           nip: cleanNip,
           username: finalUsername,
           satuan_kerja: finalSatker,
@@ -222,20 +188,18 @@ export function LoginView() {
       });
 
       const resData = resp.data;
-      setOtpPendingData({
+      setRegSuccessData({
         nama: regNama.trim(),
-        email: cleanEmail,
         nip: cleanNip,
         satuan_kerja: finalSatker,
         username: resData.pengguna.username,
-        email_terkirim_smtp: Boolean(resData.email_terkirim_smtp),
-        kode_otp_simulasi: resData.kode_otp_simulasi,
       });
-      setOtpCode("");
-      setOtpError(null);
-      setOtpInfoMessage(resData.pesan);
 
-      // Reset form input sensitif
+      setRegNama("");
+      setRegNip("");
+      setRegUsername("");
+      setRegUsernameEdited(false);
+      setRegSatkerKustom("");
       setRegPassword("");
       setRegConfirmPassword("");
     } catch (err: any) {
@@ -247,79 +211,6 @@ export function LoginView() {
           ? rawDetail.map((d: any) => d?.msg || "").join(", ")
           : "Gagal mendaftarkan akun. Silakan periksa kembali data Anda.";
       triggerRegError(detail);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpPendingData) return;
-
-    const cleanOtp = otpCode.replace(/\D/g, "");
-    if (cleanOtp.length !== 6) {
-      setOtpError("Masukkan 6 digit angka kode OTP yang dikirim ke email @komdigi.go.id Anda.");
-      return;
-    }
-
-    setIsLoading(true);
-    setOtpError(null);
-    try {
-      await verifikasiOtpMutation.mutateAsync({
-        data: {
-          email: otpPendingData.email,
-          kode_otp: cleanOtp,
-        },
-      });
-
-      setRegSuccessData({
-        nama: otpPendingData.nama,
-        email: otpPendingData.email,
-        nip: otpPendingData.nip,
-        satuan_kerja: otpPendingData.satuan_kerja,
-        username: otpPendingData.username,
-      });
-      setOtpPendingData(null);
-      setRegNama("");
-      setRegEmail("");
-      setRegNip("");
-      setRegUsername("");
-      setRegUsernameEdited(false);
-      setRegSatkerKustom("");
-    } catch (err: any) {
-      const detail =
-        err?.response?.data?.detail ||
-        "Kode OTP tidak sesuai atau sudah kedaluwarsa. Silakan coba lagi.";
-      setOtpError(typeof detail === "string" ? detail : "Gagal memverifikasi kode OTP.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!otpPendingData) return;
-    setIsLoading(true);
-    setOtpError(null);
-    setOtpInfoMessage(null);
-    try {
-      const resp = await kirimUlangOtpMutation.mutateAsync({
-        data: { email: otpPendingData.email },
-      });
-      const resData = resp.data;
-      setOtpPendingData((prev) =>
-        prev
-          ? {
-              ...prev,
-              email_terkirim_smtp: Boolean(resData.email_terkirim_smtp),
-              kode_otp_simulasi: resData.kode_otp_simulasi,
-            }
-          : null
-      );
-      setOtpInfoMessage(resData.pesan);
-    } catch (err: any) {
-      const detail =
-        err?.response?.data?.detail || "Gagal mengirim ulang kode OTP.";
-      setOtpError(typeof detail === "string" ? detail : "Gagal mengirim ulang kode OTP.");
     } finally {
       setIsLoading(false);
     }
@@ -348,9 +239,7 @@ export function LoginView() {
                 <span>Portal Resmi Pra-SI IKK 2026 &bull; Komdigi</span>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-[#1E304B]">
-                {otpPendingData
-                  ? "Verifikasi OTP Email Kedinasan"
-                  : activeTab === "LOGIN"
+                {activeTab === "LOGIN"
                   ? "Masuk ke Sistem IKK"
                   : "Registrasi Akun Satker"}
               </h1>
@@ -362,7 +251,7 @@ export function LoginView() {
           </div>
 
           {/* Tab Navigation Pill */}
-          {!regSuccessData && !otpPendingData && (
+          {!regSuccessData && (
             <div className="mt-6 flex rounded-xl bg-[#F0F3FA] p-1 border border-[#D5DEEF]/80">
               <button
                 type="button"
@@ -398,7 +287,7 @@ export function LoginView() {
           )}
 
           {/* ===================== TAB LOGIN ===================== */}
-          {activeTab === "LOGIN" && !regSuccessData && !otpPendingData && (
+          {activeTab === "LOGIN" && !regSuccessData && (
             <>
               {/* Error Alert Banner */}
               {errorMessage && (
@@ -411,7 +300,7 @@ export function LoginView() {
                       <div className="mt-2 text-[11px] text-amber-700 font-semibold bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 flex-shrink-0" />
                         <span>
-                          Email kedinasan Anda telah terverifikasi. Saat ini Admin / Koordinator PUSAKA sedang memvalidasi kesesuaian Satuan Kerja Anda.
+                          Pendaftaran Anda telah diterima. Saat ini Admin / Koordinator PUSAKA sedang memvalidasi kesesuaian Satuan Kerja Anda.
                         </span>
                       </div>
                     )}
@@ -421,17 +310,17 @@ export function LoginView() {
 
               {/* Login Form */}
               <form onSubmit={handleLoginSubmit} className="mt-5 space-y-4">
-                {/* Field Email Kedinasan atau Username */}
+                {/* Field Username */}
                 <div className="space-y-1.5">
                   <label
                     htmlFor="username"
                     className="block text-xs font-bold text-[#1E304B]"
                   >
-                    Email Kedinasan (@komdigi.go.id) atau Username
+                    Nama Pengguna (Username)
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                      <Mail className="h-4 w-4" />
+                      <User className="h-4 w-4" />
                     </div>
                     <input
                       id="username"
@@ -440,7 +329,7 @@ export function LoginView() {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="nama.pegawai@komdigi.go.id atau username"
+                      placeholder="Masukkan username akun Anda"
                       className="w-full rounded-xl border border-[#D5DEEF] bg-[#F0F3FA]/40 py-2.5 pl-10 pr-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#628ECB] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF] transition-all"
                     />
                   </div>
@@ -522,7 +411,7 @@ export function LoginView() {
                     }}
                     className="font-bold text-[#395886] hover:underline cursor-pointer"
                   >
-                    Daftar dengan Email @komdigi.go.id
+                    Daftar Akun Satker Baru
                   </button>
                 </p>
               </div>
@@ -530,7 +419,7 @@ export function LoginView() {
           )}
 
           {/* ===================== TAB REGISTRASI ===================== */}
-          {activeTab === "REGISTER" && !regSuccessData && !otpPendingData && (
+          {activeTab === "REGISTER" && !regSuccessData && (
             <>
               {/* Error Alert Banner */}
               {regError && (
@@ -547,20 +436,15 @@ export function LoginView() {
                 </div>
               )}
 
-              {/* Informational Guidance 2-Stage Verification */}
+              {/* Informational Guidance Verification */}
               <div className="mt-4 rounded-xl border border-blue-100 bg-[#F0F3FA] p-3 text-[11px] text-[#395886] leading-relaxed space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-[#1E304B]">
                   <ShieldCheck className="h-4 w-4 text-[#395886]" />
-                  <span>Keamanan Verifikasi 2 Tahap:</span>
+                  <span>Alur Pendaftaran Akun Satker:</span>
                 </div>
-                <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
-                  <li>
-                    <strong>Verifikasi OTP Email:</strong> Sistem mengirim 6 digit kode OTP ke email <code>@komdigi.go.id</code> Anda.
-                  </li>
-                  <li>
-                    <strong>Persetujuan Admin:</strong> Admin/Koordinator PUSAKA memvalidasi kesesuaian identitas &amp; Satuan Kerja Anda.
-                  </li>
-                </ol>
+                <p className="text-slate-600">
+                  Isi identitas pegawai dan Satuan Kerja Anda di bawah ini. Setelah didaftarkan, akun akan diverifikasi dan diaktifkan oleh <strong>Koordinator PUSAKA / Admin</strong>.
+                </p>
               </div>
 
               {/* Register Form */}
@@ -583,33 +467,8 @@ export function LoginView() {
                       type="text"
                       required
                       value={regNama}
-                      onChange={(e) => setRegNama(e.target.value)}
+                      onChange={(e) => handleNamaChange(e.target.value)}
                       placeholder="Contoh: Budi Santoso"
-                      className="w-full rounded-xl border border-[#D5DEEF] bg-[#F0F3FA]/40 py-2 pl-10 pr-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#628ECB] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF] transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Email Kedinasan @komdigi.go.id */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-[#1E304B]">
-                      Email
-                    </label>
-                    <span className="text-[10px] font-bold text-[#395886] bg-[#F0F3FA] px-2 py-0.5 rounded-md border border-[#B1C9EF]">
-                      @komdigi.go.id
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                      <Mail className="h-4 w-4" />
-                    </div>
-                    <input
-                      type="email"
-                      required
-                      value={regEmail}
-                      onChange={(e) => handleEmailChange(e.target.value)}
-                      placeholder="nama.pegawai@komdigi.go.id"
                       className="w-full rounded-xl border border-[#D5DEEF] bg-[#F0F3FA]/40 py-2 pl-10 pr-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#628ECB] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF] transition-all"
                     />
                   </div>
@@ -657,7 +516,7 @@ export function LoginView() {
                             e.target.value.toLowerCase().replace(/\s+/g, "")
                           );
                         }}
-                        placeholder="nama.pegawai"
+                        placeholder="budi.santoso"
                         className="w-full rounded-xl border border-[#D5DEEF] bg-[#F0F3FA]/40 py-2 pl-10 pr-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#628ECB] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF] transition-all"
                       />
                     </div>
@@ -771,12 +630,12 @@ export function LoginView() {
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Mengirim Kode OTP ke Email...</span>
+                        <span>Mendaftarkan Akun...</span>
                       </>
                     ) : (
                       <>
-                        <Mail className="h-4 w-4" />
-                        <span>Daftarkan &amp; Kirim Kode OTP ke Email</span>
+                        <UserPlus className="h-4 w-4" />
+                        <span>Daftarkan Akun Satker</span>
                       </>
                     )}
                   </button>
@@ -786,7 +645,7 @@ export function LoginView() {
               {/* Back to Login link */}
               <div className="mt-4 text-center">
                 <p className="text-xs text-slate-500">
-                  Sudah memiliki akun terverifikasi?{" "}
+                  Sudah memiliki akun aktif?{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -802,135 +661,17 @@ export function LoginView() {
             </>
           )}
 
-          {/* ===================== TAHAP 1: VERIFIKASI KODE OTP EMAIL ===================== */}
-          {otpPendingData && (
-            <div className="mt-6 rounded-2xl border border-[#B1C9EF] bg-[#F0F3FA]/70 p-5 space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#395886] text-white flex-shrink-0 shadow-xs">
-                  <KeyRound className="h-5 w-5" />
-                </div>
-                <div className="text-xs space-y-1">
-                  <span className="inline-block rounded-full bg-blue-100 text-[#395886] px-2.5 py-0.5 text-[10px] font-bold">
-                    Tahap 1 dari 2 &bull; Verifikasi Email Kedinasan
-                  </span>
-                  <h2 className="text-sm font-bold text-[#1E304B]">
-                    Masukkan 6 Digit Kode OTP
-                  </h2>
-                  <p className="text-slate-600 leading-relaxed">
-                    Kode OTP telah dikirim ke email kedinasan{" "}
-                    <strong className="text-[#1E304B]">{otpPendingData.email}</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Simulasi OTP Box jika SMTP belum disetel di mode development */}
-              {otpPendingData.kode_otp_simulasi && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-center justify-between gap-2">
-                  <div>
-                    <div className="font-bold text-[11px] uppercase tracking-wider text-amber-700">
-                      Simulasi Kotak Masuk Email (Mode Lokal/Dev)
-                    </div>
-                    <div className="mt-0.5">
-                      Kode OTP Anda:{" "}
-                      <span className="font-mono text-sm font-extrabold tracking-widest text-[#1E304B] bg-white px-2 py-0.5 rounded border border-amber-300">
-                        {otpPendingData.kode_otp_simulasi}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setOtpCode(otpPendingData.kode_otp_simulasi || "")}
-                    className="rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 text-[11px] font-bold transition-colors cursor-pointer flex-shrink-0"
-                  >
-                    Isi Otomatis
-                  </button>
-                </div>
-              )}
-
-              {otpInfoMessage && !otpError && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-3 text-xs text-emerald-800 font-medium">
-                  {otpInfoMessage}
-                </div>
-              )}
-
-              {otpError && (
-                <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 font-semibold">
-                  <AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0 mt-0.5" />
-                  <span>{otpError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleVerifyOtpSubmit} className="space-y-3.5">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#1E304B] text-center">
-                    Kode Verifikasi OTP (6 Digit Angka)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    required
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="000000"
-                    className="w-full rounded-xl border-2 border-[#8AAEE0] bg-white py-3 px-4 text-center font-mono text-xl font-bold tracking-[0.5em] text-[#1E304B] placeholder:text-slate-300 focus:border-[#395886] focus:outline-hidden focus:ring-2 focus:ring-[#B1C9EF]"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading || otpCode.length !== 6}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#395886] to-[#4E73A9] hover:from-[#2F4A72] hover:to-[#395886] py-2.5 px-4 text-xs font-bold text-white shadow-palette-md disabled:opacity-60 transition-all cursor-pointer"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Memverifikasi Kode OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Verifikasi OTP &amp; Lanjutkan ke Persetujuan Admin</span>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div className="flex items-center justify-between pt-2 border-t border-[#D5DEEF] text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpPendingData(null);
-                    setOtpError(null);
-                  }}
-                  className="text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
-                >
-                  &larr; Ubah Data Pendaftaran
-                </button>
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={handleResendOtp}
-                  className="inline-flex items-center gap-1 font-bold text-[#395886] hover:underline disabled:opacity-50 cursor-pointer"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span>Kirim Ulang Kode OTP</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ===================== TAHAP 2: REGISTRATION SUCCESS CARD (MENUNGGU ADMIN) ===================== */}
+          {/* ===================== REGISTRATION SUCCESS CARD (MENUNGGU ADMIN/KOORDINATOR) ===================== */}
           {regSuccessData && (
             <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 text-center animate-in zoom-in-95 duration-200">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-palette-md">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <h2 className="mt-3 text-lg font-bold text-slate-900">
-                Email Kedinasan Terverifikasi!
+                Pendaftaran Akun Berhasil!
               </h2>
               <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
-                Kepemilikan email <strong>{regSuccessData.email}</strong> telah berhasil diverifikasi.
+                Pengajuan akun untuk username <strong>@{regSuccessData.username}</strong> telah diterima dan diteruskan ke Koordinator PUSAKA / Admin.
               </p>
 
               {/* Data Detail Card */}
@@ -940,8 +681,8 @@ export function LoginView() {
                   <span className="font-bold text-[#1E304B]">{regSuccessData.nama}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-100 pb-1">
-                  <span className="text-slate-500">Email Kedinasan:</span>
-                  <span className="font-mono font-bold text-emerald-700">{regSuccessData.email}</span>
+                  <span className="text-slate-500">Username Login:</span>
+                  <span className="font-mono font-bold text-emerald-700">@{regSuccessData.username}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-100 pb-1">
                   <span className="text-slate-500">NIP:</span>
@@ -951,18 +692,11 @@ export function LoginView() {
                   <span className="text-slate-500">Satuan Kerja:</span>
                   <span className="font-semibold text-[#1E304B] text-right">{regSuccessData.satuan_kerja}</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-100 pb-1">
-                  <span className="text-slate-500">Tahap 1 (OTP Email):</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span>TERVERIFIKASI</span>
-                  </span>
-                </div>
                 <div className="flex justify-between pt-0.5">
-                  <span className="text-slate-500">Tahap 2 (Validasi Admin):</span>
+                  <span className="text-slate-500">Status Akun:</span>
                   <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
                     <Clock className="h-3 w-3" />
-                    <span>MENUNGGU PERSETUJUAN ADMIN</span>
+                    <span>MENUNGGU PERSETUJUAN KOORDINATOR / ADMIN</span>
                   </span>
                 </div>
               </div>
@@ -971,7 +705,7 @@ export function LoginView() {
               <div className="mt-4 rounded-xl bg-amber-50/90 border border-amber-200/70 p-3 text-[11px] text-amber-800 text-left flex items-start gap-2">
                 <Clock className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong>Validasi Human-in-the-Loop:</strong> Akun Anda kini berada di antrean persetujuan <strong>Admin / Koordinator PUSAKA Komdigi</strong> untuk memastikan kesesuaian penugasan Satuan Kerja Anda. Anda dapat login menggunakan <strong>{regSuccessData.email}</strong> setelah disetujui.
+                  <strong>Menunggu Aktivasi:</strong> Akun Anda kini berada di antrean persetujuan <strong>Koordinator PUSAKA / Admin</strong> untuk memastikan kesesuaian penugasan Satuan Kerja Anda. Anda dapat login menggunakan username <strong>{regSuccessData.username}</strong> setelah disetujui.
                 </div>
               </div>
 

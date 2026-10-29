@@ -33,100 +33,76 @@ async def daftar(
     db: AsyncSession = Depends(get_db),
 ) -> RegistrasiRespon:
     """
-    Registrasi mandiri pegawai Satker Komdigi (Tahap 1: Kirim Kode OTP ke Email @komdigi.go.id).
+    Registrasi mandiri pegawai Satker (langsung masuk antrean verifikasi
+    Admin/Koordinator tanpa OTP email).
     """
-    clean_email = payload.email.strip().lower()
     clean_nip = payload.nip.strip()
+    clean_email = (
+        payload.email.strip().lower() if payload.email and payload.email.strip() else None
+    )
 
-    # Cek apakah email sudah pernah didaftarkan
-    stmt_e = select(Pengguna).where(Pengguna.email == clean_email)
-    res_e = await db.execute(stmt_e)
-    existing_by_email = res_e.scalar_one_or_none()
+    username = (
+        payload.username.strip().lower()
+        if payload.username and payload.username.strip()
+        else f"satker_{clean_nip[-6:]}"
+    )
 
-    if existing_by_email and existing_by_email.status_verifikasi != (
-        StatusVerifikasi.MENUNGGU_OTP_EMAIL
-    ):
+    # Periksa Username duplikat
+    stmt_u = select(Pengguna).where(Pengguna.username == username)
+    res_u = await db.execute(stmt_u)
+    if res_u.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Alamat email kedinasan ini sudah terdaftar dalam sistem.",
+            detail=f"Username '{username}' sudah digunakan. Silakan pilih username lain.",
         )
 
-    # Periksa NIP duplikat pada akun lain yang sudah terverifikasi / aktif
+    # Periksa NIP duplikat
     stmt_nip = select(Pengguna).where(Pengguna.nip == clean_nip)
     res_nip = await db.execute(stmt_nip)
-    existing_by_nip = res_nip.scalar_one_or_none()
-    if (
-        existing_by_nip
-        and existing_by_nip.email != clean_email
-        and existing_by_nip.status_verifikasi != StatusVerifikasi.MENUNGGU_OTP_EMAIL
-    ):
+    if res_nip.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"NIP {clean_nip} sudah terdaftar dalam sistem.",
         )
 
-    otp = generate_kode_otp()
-    otp_expiry = datetime.now(UTC) + timedelta(minutes=10)
+    # Periksa Email duplikat jika diisi
+    if clean_email:
+        stmt_e = select(Pengguna).where(Pengguna.email == clean_email)
+        res_e = await db.execute(stmt_e)
+        if res_e.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Alamat email ini sudah terdaftar dalam sistem.",
+            )
 
-    if existing_by_email:
-        # Perbarui data pendaftaran yang masih menunggu OTP dan kirim OTP baru
-        user = existing_by_email
-        user.nama = payload.nama.strip()
-        user.nip = clean_nip
-        user.satuan_kerja = payload.satuan_kerja.strip()
-        user.password_hash = hash_password(payload.password)
-        user.kode_otp = otp
-        user.otp_kadaluarsa_pada = otp_expiry
-        user.email_terverifikasi = False
-        user.status_verifikasi = StatusVerifikasi.MENUNGGU_OTP_EMAIL
-    else:
-        username = (
-            payload.username.strip().lower()
-            if payload.username and payload.username.strip()
-            else clean_email.split("@")[0].lower()
-        )
-        stmt_u = select(Pengguna).where(Pengguna.username == username)
-        res_u = await db.execute(stmt_u)
-        if res_u.scalar_one_or_none():
-            username = f"{username}_{clean_nip[-4:]}"
-
-        user = Pengguna(
-            nama=payload.nama.strip(),
-            username=username,
-            email=clean_email,
-            nip=clean_nip,
-            satuan_kerja=payload.satuan_kerja.strip(),
-            status_verifikasi=StatusVerifikasi.MENUNGGU_OTP_EMAIL,
-            email_terverifikasi=False,
-            kode_otp=otp,
-            otp_kadaluarsa_pada=otp_expiry,
-            password_hash=hash_password(payload.password),
-            peran=payload.peran,
-            instansi=payload.instansi,
-        )
-        db.add(user)
-
+    user = Pengguna(
+        nama=payload.nama.strip(),
+        username=username,
+        email=clean_email,
+        nip=clean_nip,
+        satuan_kerja=payload.satuan_kerja.strip(),
+        status_verifikasi=StatusVerifikasi.MENUNGGU_VERIFIKASI,
+        email_terverifikasi=True,
+        kode_otp=None,
+        otp_kadaluarsa_pada=None,
+        password_hash=hash_password(payload.password),
+        peran=payload.peran,
+        instansi=payload.instansi,
+    )
+    db.add(user)
     await db.commit()
     await db.refresh(user)
 
-    terkirim_smtp = await kirim_email_otp(
-        email_tujuan=clean_email,
-        nama=user.nama,
-        satuan_kerja=user.satuan_kerja,
-        kode_otp=otp,
-    )
-    kode_simulasi = otp if (not terkirim_smtp and settings.ENVIRONMENT != "production") else None
-
     return RegistrasiRespon(
         pesan=(
-            f"Kode verifikasi OTP 6 digit telah dikirimkan ke {clean_email}. "
-            "Silakan masukkan kode OTP untuk memverifikasi kepemilikan email kedinasan Anda."
+            "Pendaftaran akun berhasil dikirim! Akun Anda kini berada di antrean "
+            "persetujuan Admin / Koordinator PUSAKA untuk validasi Satuan Kerja."
         ),
         pengguna=PenggunaBaca.model_validate(user),
         status_verifikasi=user.status_verifikasi,
-        butuh_verifikasi_otp=True,
-        email_terkirim_smtp=terkirim_smtp,
-        kode_otp_simulasi=kode_simulasi,
+        butuh_verifikasi_otp=False,
+        email_terkirim_smtp=False,
+        kode_otp_simulasi=None,
     )
 
 
