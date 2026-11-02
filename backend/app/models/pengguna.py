@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -40,6 +40,7 @@ class Pengguna(Base):
     status_verifikasi: Mapped[str] = mapped_column(
         String(50), nullable=False, default=StatusVerifikasi.AKTIF
     )
+    catatan_penolakan: Mapped[str | None] = mapped_column(Text, nullable=True)
     email_terverifikasi: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )

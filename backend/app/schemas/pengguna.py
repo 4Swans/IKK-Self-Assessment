@@ -12,6 +12,7 @@ class PenggunaBaca(BaseModel):
     nip: str | None = None
     satuan_kerja: str
     status_verifikasi: str
+    catatan_penolakan: str | None = None
     email_terverifikasi: bool = False
     peran: str
     instansi: str

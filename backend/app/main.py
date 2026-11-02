@@ -96,6 +96,12 @@ async def ensure_vercel_db_initialized() -> None:
                     await kunci_conn.commit()
                     async with engine.begin() as conn:
                         await conn.run_sync(Base.metadata.create_all)
+                        await conn.execute(
+                            text(
+                                "ALTER TABLE pengguna "
+                                "ADD COLUMN IF NOT EXISTS catatan_penolakan TEXT;"
+                            )
+                        )
                     await muat_instrumen(2026)
                     await seed_production_initial_data()
                     await _simpan_sidik_jari(sidik_jari)

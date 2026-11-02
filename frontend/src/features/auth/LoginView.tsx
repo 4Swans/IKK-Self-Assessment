@@ -64,6 +64,7 @@ export function LoginView() {
     password?: string;
   } | null>(null);
   const [regStatus, setRegStatus] = useState<"MENUNGGU" | "AKTIF" | "DITOLAK">("MENUNGGU");
+  const [alasanPenolakan, setAlasanPenolakan] = useState<string | null>(null);
 
   // Auto-polling status verifikasi akun secara berkala saat layar menunggu aktif
   React.useEffect(() => {
@@ -81,6 +82,7 @@ export function LoginView() {
           setRegStatus("AKTIF");
         } else if (data.status === "DITOLAK") {
           setRegStatus("DITOLAK");
+          setAlasanPenolakan(data.alasan_penolakan || null);
         }
       } catch {
         // Abaikan galat jaringan sementara saat polling
@@ -768,8 +770,25 @@ export function LoginView() {
                     Pengajuan akun untuk username <strong>@{regSuccessData.username}</strong> belum dapat disetujui oleh Koordinator PUSAKA / Admin.
                   </p>
 
+                  {/* Alasan Penolakan dari Admin */}
+                  {alasanPenolakan ? (
+                    <div className="mt-4 rounded-xl border border-rose-200 bg-white p-3.5 text-left shadow-xs space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-rose-800 text-xs font-bold uppercase tracking-wider">
+                        <AlertCircle className="h-4 w-4 text-rose-600" />
+                        <span>Alasan Penolakan dari Admin:</span>
+                      </div>
+                      <p className="text-xs text-slate-800 font-medium leading-relaxed bg-rose-50/70 p-3 rounded-lg border border-rose-100 italic">
+                        "{alasanPenolakan}"
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-xl border border-rose-200 bg-white p-3 text-left text-xs text-slate-600">
+                      Admin tidak menyertakan catatan khusus. Pastikan NIP dan Satuan Kerja Anda sesuai dengan penugasan instansi.
+                    </div>
+                  )}
+
                   {/* Detail Info Card */}
-                  <div className="mt-4 rounded-xl bg-white p-3.5 border border-rose-200 text-left text-xs text-slate-700 space-y-2">
+                  <div className="mt-3 rounded-xl bg-white p-3.5 border border-rose-200 text-left text-xs text-slate-700 space-y-2">
                     <div className="flex justify-between border-b border-slate-100 pb-1">
                       <span className="text-slate-500">Status Akun:</span>
                       <span className="inline-flex items-center gap-1 font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-300 text-[10px]">
@@ -778,7 +797,7 @@ export function LoginView() {
                       </span>
                     </div>
                     <p className="text-[11px] text-rose-800 leading-relaxed bg-rose-50/60 p-2.5 rounded-lg border border-rose-100">
-                      Data pendaftaran akun Anda telah dibersihkan dari sistem, sehingga NIP dan Username dapat didaftarkan kembali dengan data atau Satuan Kerja yang sesuai.
+                      Data akun pendaftaran dapat didaftarkan kembali. Silakan klik tombol di bawah untuk memperbaiki data pendaftaran Anda.
                     </p>
                   </div>
 
@@ -786,14 +805,14 @@ export function LoginView() {
                   <button
                     type="button"
                     onClick={() => {
+                      setRegNama(regSuccessData.nama);
+                      setRegNip(regSuccessData.nip);
+                      setRegUsername(regSuccessData.username);
+                      setRegSatker(regSuccessData.satuan_kerja);
                       setRegSuccessData(null);
                       setRegStatus("MENUNGGU");
+                      setAlasanPenolakan(null);
                       setActiveTab("REGISTER");
-                      setRegNama("");
-                      setRegUsername("");
-                      setRegNip("");
-                      setRegPassword("");
-                      setRegConfirmPassword("");
                       setErrorMessage(null);
                     }}
                     className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 py-3 px-4 text-xs font-bold text-white shadow-palette-md transition-all cursor-pointer"
@@ -807,6 +826,7 @@ export function LoginView() {
                     onClick={() => {
                       setRegSuccessData(null);
                       setRegStatus("MENUNGGU");
+                      setAlasanPenolakan(null);
                       setActiveTab("LOGIN");
                       setErrorMessage(null);
                     }}

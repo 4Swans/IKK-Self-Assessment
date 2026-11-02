@@ -51,30 +51,47 @@ async def daftar(
     # Periksa Username duplikat
     stmt_u = select(Pengguna).where(Pengguna.username == username)
     res_u = await db.execute(stmt_u)
-    if res_u.scalars().first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Username '{username}' sudah digunakan. Silakan pilih username lain.",
-        )
+    existing_u = res_u.scalars().first()
+    if existing_u:
+        if existing_u.status_verifikasi == StatusVerifikasi.DITOLAK:
+            # Akun lama ditolak: hapus akun lama agar pendaftaran baru dapat diproses
+            await db.delete(existing_u)
+            await db.flush()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Username '{username}' sudah digunakan. Silakan pilih username lain.",
+            )
 
     # Periksa NIP duplikat
     stmt_nip = select(Pengguna).where(Pengguna.nip == clean_nip)
     res_nip = await db.execute(stmt_nip)
-    if res_nip.scalars().first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"NIP {clean_nip} sudah terdaftar dalam sistem.",
-        )
+    existing_nip = res_nip.scalars().first()
+    if existing_nip:
+        if existing_nip.status_verifikasi == StatusVerifikasi.DITOLAK:
+            # Akun lama ditolak: hapus akun lama agar pendaftaran baru dapat diproses
+            await db.delete(existing_nip)
+            await db.flush()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"NIP {clean_nip} sudah terdaftar dalam sistem.",
+            )
 
     # Periksa Email duplikat jika diisi
     if clean_email:
         stmt_e = select(Pengguna).where(Pengguna.email == clean_email)
         res_e = await db.execute(stmt_e)
-        if res_e.scalars().first():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Alamat email ini sudah terdaftar dalam sistem.",
-            )
+        existing_e = res_e.scalars().first()
+        if existing_e:
+            if existing_e.status_verifikasi == StatusVerifikasi.DITOLAK:
+                await db.delete(existing_e)
+                await db.flush()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Alamat email ini sudah terdaftar dalam sistem.",
+                )
 
     user = Pengguna(
         nama=payload.nama.strip(),
@@ -142,6 +159,7 @@ async def cek_status_pendaftaran(
             nama=user.nama,
             satuan_kerja=user.satuan_kerja,
             pesan="Pendaftaran akun ditolak oleh Admin / Koordinator.",
+            alasan_penolakan=user.catatan_penolakan,
         )
 
     return StatusPendaftaranRespon(

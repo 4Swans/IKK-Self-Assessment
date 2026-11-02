@@ -44,6 +44,7 @@ class PenggunaBaca(BaseModel):
     nip: str | None = None
     satuan_kerja: str
     status_verifikasi: str
+    catatan_penolakan: str | None = None
     email_terverifikasi: bool = False
     peran: str
     instansi: str
@@ -73,3 +74,4 @@ class StatusPendaftaranRespon(BaseModel):
     pesan: str
     nama: str | None = None
     satuan_kerja: str | None = None
+    alasan_penolakan: str | None = None

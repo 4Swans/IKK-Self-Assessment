@@ -73,21 +73,12 @@ async def verifikasi_pengguna(
             detail="Pengguna tidak ditemukan.",
         )
 
-    if payload.status == "DITOLAK":
-        baca = PenggunaBaca.model_validate(user)
-        baca.status_verifikasi = "DITOLAK"
-        try:
-            await db.delete(user)
-            await db.commit()
-            return baca
-        except IntegrityError:
-            await db.rollback()
-            user.status_verifikasi = payload.status
-            await db.commit()
-            await db.refresh(user)
-            return PenggunaBaca.model_validate(user)
-
     user.status_verifikasi = payload.status
+    if payload.status == "DITOLAK":
+        user.catatan_penolakan = payload.catatan
+    elif payload.status == "AKTIF":
+        user.catatan_penolakan = None
+
     await db.commit()
     await db.refresh(user)
     return PenggunaBaca.model_validate(user)
