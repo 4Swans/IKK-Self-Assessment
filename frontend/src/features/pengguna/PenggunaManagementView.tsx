@@ -199,7 +199,7 @@ export function PenggunaManagementView() {
       showToast({
         type: "warning",
         title: "Pendaftaran Akun Ditolak",
-        message: `Pengajuan akun untuk "${rejectingUser.nama}" telah ditolak.`,
+        message: `Pengajuan akun untuk "${rejectingUser.nama}" telah ditolak dan data akun dibersihkan agar dapat mendaftar ulang.`,
       });
     } catch (err: any) {
       setModalError(err?.response?.data?.detail || "Gagal menolak akun pengguna.");
@@ -836,6 +836,10 @@ export function PenggunaManagementView() {
             <p className="text-xs text-slate-600 leading-relaxed">
               Anda akan menolak pengajuan akun dari <strong>{rejectingUser.nama}</strong> (NIP: {rejectingUser.nip}) untuk Satuan Kerja <strong>{rejectingUser.satuan_kerja}</strong>.
             </p>
+
+            <div className="rounded-xl border border-rose-100 bg-rose-50/70 p-3 text-xs text-rose-700 leading-relaxed">
+              Data pendaftaran akun ini akan otomatis dibersihkan dari sistem sehingga NIP dan Username dapat didaftarkan kembali apabila terdapat kesalahan pengisian.
+            </div>
 
             <form onSubmit={handleRejectConfirm} className="space-y-3">
               <div>

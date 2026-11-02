@@ -67,50 +67,6 @@ async def _simpan_sidik_jari(sidik_jari: str) -> None:
         )
 
 
-
-def _hitung_sidik_jari_seed() -> str:
-    """Hash isi berkas seed dan daftar tabel/kolom model. Berubah bila seed atau skema berubah."""
-    folder_seed = Path(__file__).parent / "seeds"
-    h = hashlib.sha256()
-    for nama in _BERKAS_SEED:
-        h.update(nama.encode())
-        h.update((folder_seed / nama).read_bytes())
-    for tabel in sorted(Base.metadata.tables.values(), key=lambda t: t.name):
-        h.update(tabel.name.encode())
-        for kolom in tabel.columns:
-            h.update(kolom.name.encode())
-    return h.hexdigest()
-
-
-async def _baca_sidik_jari_tersimpan(conn: AsyncConnection) -> str | None:
-    ada = await conn.execute(text(f"SELECT to_regclass('public.{_TABEL_STATUS_SEED}')"))
-    if ada.scalar() is None:
-        return None
-    hasil = await conn.execute(
-        text(f"SELECT nilai FROM {_TABEL_STATUS_SEED} WHERE kunci = 'seed'")
-    )
-    nilai = hasil.scalar()
-    return str(nilai) if nilai is not None else None
-
-
-async def _simpan_sidik_jari(sidik_jari: str) -> None:
-    async with engine.begin() as conn:
-        await conn.execute(
-            text(
-                f"CREATE TABLE IF NOT EXISTS {_TABEL_STATUS_SEED} ("
-                "kunci TEXT PRIMARY KEY, nilai TEXT NOT NULL, "
-                "diperbarui_pada TIMESTAMPTZ NOT NULL DEFAULT now())"
-            )
-        )
-        await conn.execute(
-            text(
-                f"INSERT INTO {_TABEL_STATUS_SEED} (kunci, nilai) VALUES ('seed', :nilai) "
-                "ON CONFLICT (kunci) DO UPDATE SET nilai = EXCLUDED.nilai, diperbarui_pada = now()"
-            ),
-            {"nilai": sidik_jari},
-        )
-
-
 async def ensure_vercel_db_initialized() -> None:
     """Inisialisasi skema tabel, instrumen 2026, dan akun awal otomatis saat berjalan di Vercel.
 
