@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as axios from "axios";
 import {
   Award,
   Lock,
@@ -16,6 +17,9 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  RotateCcw,
+  UserX,
+  Radio,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useDaftarApiV1AuthDaftarPost } from "../../api/endpoints/autentikasi/autentikasi";
@@ -57,7 +61,37 @@ export function LoginView() {
     nip: string;
     satuan_kerja: string;
     username: string;
+    password?: string;
   } | null>(null);
+  const [regStatus, setRegStatus] = useState<"MENUNGGU" | "AKTIF" | "DITOLAK">("MENUNGGU");
+
+  // Auto-polling status verifikasi akun secara berkala saat layar menunggu aktif
+  React.useEffect(() => {
+    if (!regSuccessData || regStatus !== "MENUNGGU") return;
+
+    let isMounted = true;
+    const intervalId = setInterval(async () => {
+      try {
+        const resp = await axios.default.get(
+          `/api/v1/auth/status-pendaftaran?username=${encodeURIComponent(regSuccessData.username)}`
+        );
+        if (!isMounted) return;
+        const data = resp.data;
+        if (data.status === "AKTIF") {
+          setRegStatus("AKTIF");
+        } else if (data.status === "DITOLAK") {
+          setRegStatus("DITOLAK");
+        }
+      } catch {
+        // Abaikan galat jaringan sementara saat polling
+      }
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [regSuccessData, regStatus]);
 
   const regErrorRef = React.useRef<HTMLDivElement>(null);
   const cardTopRef = React.useRef<HTMLDivElement>(null);
@@ -193,7 +227,9 @@ export function LoginView() {
         nip: cleanNip,
         satuan_kerja: finalSatker,
         username: resData.pengguna.username,
+        password: regPassword,
       });
+      setRegStatus("MENUNGGU");
 
       setRegNama("");
       setRegNip("");
@@ -660,68 +696,198 @@ export function LoginView() {
             </>
           )}
 
-          {/* ===================== REGISTRATION SUCCESS CARD (MENUNGGU ADMIN/KOORDINATOR) ===================== */}
+          {/* ===================== REGISTRATION LIVE STATUS CARD ===================== */}
           {regSuccessData && (
-            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 text-center animate-in zoom-in-95 duration-200">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-palette-md">
-                <CheckCircle2 className="h-6 w-6" />
-              </div>
-              <h2 className="mt-3 text-lg font-bold text-slate-900">
-                Pendaftaran Akun Berhasil!
-              </h2>
-              <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
-                Pengajuan akun untuk username <strong>@{regSuccessData.username}</strong> telah diterima dan diteruskan ke Koordinator PUSAKA / Admin.
-              </p>
+            <>
+              {/* 1. KONDISI: AKUN TELAH DISETUJUI / DITERIMA */}
+              {regStatus === "AKTIF" && (
+                <div className="mt-6 rounded-2xl border border-emerald-300 bg-emerald-50/90 p-6 text-center animate-in zoom-in-95 duration-200 shadow-palette-sm">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-palette-md">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <h2 className="mt-3.5 text-lg font-bold text-slate-900">
+                    Akun Anda Telah Disetujui
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
+                    Identitas dan Satuan Kerja Anda telah divalidasi oleh Koordinator PUSAKA / Admin. Akun Anda kini aktif dan siap digunakan.
+                  </p>
 
-              {/* Data Detail Card */}
-              <div className="mt-4 text-left rounded-xl bg-white p-3.5 border border-emerald-200/80 space-y-1.5 text-xs text-slate-700">
-                <div className="flex justify-between border-b border-slate-100 pb-1">
-                  <span className="text-slate-500">Nama Pegawai:</span>
-                  <span className="font-bold text-[#1E304B]">{regSuccessData.nama}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-100 pb-1">
-                  <span className="text-slate-500">Username Login:</span>
-                  <span className="font-mono font-bold text-emerald-700">@{regSuccessData.username}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-100 pb-1">
-                  <span className="text-slate-500">NIP:</span>
-                  <span className="font-mono font-bold text-[#1E304B]">{regSuccessData.nip}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-100 pb-1">
-                  <span className="text-slate-500">Satuan Kerja:</span>
-                  <span className="font-semibold text-[#1E304B] text-right">{regSuccessData.satuan_kerja}</span>
-                </div>
-                <div className="flex justify-between pt-0.5">
-                  <span className="text-slate-500">Status Akun:</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
-                    <Clock className="h-3 w-3" />
-                    <span>MENUNGGU PERSETUJUAN KOORDINATOR / ADMIN</span>
-                  </span>
-                </div>
-              </div>
+                  {/* Data Detail Card */}
+                  <div className="mt-4 text-left rounded-xl bg-white p-3.5 border border-emerald-200/80 space-y-1.5 text-xs text-slate-700">
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Nama Pegawai:</span>
+                      <span className="font-bold text-[#1E304B]">{regSuccessData.nama}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Username Login:</span>
+                      <span className="font-mono font-bold text-emerald-700">@{regSuccessData.username}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Satuan Kerja:</span>
+                      <span className="font-semibold text-[#1E304B] text-right">{regSuccessData.satuan_kerja}</span>
+                    </div>
+                    <div className="flex justify-between pt-0.5">
+                      <span className="text-slate-500">Status Akun:</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300 text-[10px]">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-700" />
+                        <span>AKTIF &amp; SIAP DIGUNAKAN</span>
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Information Note */}
-              <div className="mt-4 rounded-xl bg-amber-50/90 border border-amber-200/70 p-3 text-[11px] text-amber-800 text-left flex items-start gap-2">
-                <Clock className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <strong>Menunggu Aktivasi:</strong> Akun Anda kini berada di antrean persetujuan <strong>Koordinator PUSAKA / Admin</strong> untuk memastikan kesesuaian penugasan Satuan Kerja Anda. Anda dapat login menggunakan username <strong>{regSuccessData.username}</strong> setelah disetujui.
+                  {/* Tombol Masuk Sekarang */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUsername(regSuccessData.username);
+                      if (regSuccessData.password) {
+                        setPassword(regSuccessData.password);
+                      }
+                      setRegSuccessData(null);
+                      setActiveTab("LOGIN");
+                      setErrorMessage(null);
+                    }}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-3 px-4 text-xs font-bold text-white shadow-palette-md transition-all cursor-pointer"
+                  >
+                    <span>Masuk Sekarang</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
-              </div>
+              )}
 
-              {/* Action Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setRegSuccessData(null);
-                  setActiveTab("LOGIN");
-                  setErrorMessage(null);
-                }}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#395886] hover:bg-[#2F4A72] py-2.5 px-4 text-xs font-bold text-white shadow-palette-md transition-all cursor-pointer"
-              >
-                <span>Kembali ke Halaman Masuk</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+              {/* 2. KONDISI: PENDAFTARAN DITOLAK */}
+              {regStatus === "DITOLAK" && (
+                <div className="mt-6 rounded-2xl border border-rose-300 bg-rose-50/90 p-6 text-center animate-in zoom-in-95 duration-200 shadow-palette-sm">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-600 text-white shadow-palette-md">
+                    <UserX className="h-8 w-8" />
+                  </div>
+                  <h2 className="mt-3.5 text-lg font-bold text-slate-900">
+                    Pendaftaran Akun Ditolak
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
+                    Pengajuan akun untuk username <strong>@{regSuccessData.username}</strong> belum dapat disetujui oleh Koordinator PUSAKA / Admin.
+                  </p>
+
+                  {/* Detail Info Card */}
+                  <div className="mt-4 rounded-xl bg-white p-3.5 border border-rose-200 text-left text-xs text-slate-700 space-y-2">
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Status Akun:</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-300 text-[10px]">
+                        <UserX className="h-3 w-3 text-rose-700" />
+                        <span>DITOLAK OLEH ADMIN</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-rose-800 leading-relaxed bg-rose-50/60 p-2.5 rounded-lg border border-rose-100">
+                      Data pendaftaran akun Anda telah dibersihkan dari sistem, sehingga NIP dan Username dapat didaftarkan kembali dengan data atau Satuan Kerja yang sesuai.
+                    </p>
+                  </div>
+
+                  {/* Tombol Daftar Ulang */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegSuccessData(null);
+                      setRegStatus("MENUNGGU");
+                      setActiveTab("REGISTER");
+                      setRegNama("");
+                      setRegUsername("");
+                      setRegNip("");
+                      setRegPassword("");
+                      setRegConfirmPassword("");
+                      setErrorMessage(null);
+                    }}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 py-3 px-4 text-xs font-bold text-white shadow-palette-md transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span>Daftar Ulang dengan Data yang Benar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegSuccessData(null);
+                      setRegStatus("MENUNGGU");
+                      setActiveTab("LOGIN");
+                      setErrorMessage(null);
+                    }}
+                    className="mt-2.5 flex w-full items-center justify-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-700 py-1"
+                  >
+                    <span>Kembali ke Halaman Masuk</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 3. KONDISI: SEDANG MENUNGGU PERSETUJUAN (LIVE POLLING) */}
+              {regStatus === "MENUNGGU" && (
+                <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50/80 p-6 text-center animate-in zoom-in-95 duration-200 shadow-palette-sm">
+                  <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-palette-md">
+                    <Clock className="h-7 w-7 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-600"></span>
+                    </span>
+                  </div>
+                  <h2 className="mt-3.5 text-lg font-bold text-slate-900">
+                    Pendaftaran Sedang Diverifikasi
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
+                    Pengajuan akun untuk username <strong>@{regSuccessData.username}</strong> berada di antrean Koordinator PUSAKA / Admin.
+                  </p>
+
+                  {/* Live Pulse Bar */}
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-100/90 px-3 py-1 text-[11px] font-semibold text-amber-900 border border-amber-300/80">
+                    <Radio className="h-3.5 w-3.5 text-amber-700 animate-pulse" />
+                    <span>Memantau status persetujuan secara otomatis...</span>
+                  </div>
+
+                  {/* Data Detail Card */}
+                  <div className="mt-4 text-left rounded-xl bg-white p-3.5 border border-amber-200/80 space-y-1.5 text-xs text-slate-700">
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Nama Pegawai:</span>
+                      <span className="font-bold text-[#1E304B]">{regSuccessData.nama}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Username Login:</span>
+                      <span className="font-mono font-bold text-amber-800">@{regSuccessData.username}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">NIP:</span>
+                      <span className="font-mono font-bold text-[#1E304B]">{regSuccessData.nip}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1">
+                      <span className="text-slate-500">Satuan Kerja:</span>
+                      <span className="font-semibold text-[#1E304B] text-right">{regSuccessData.satuan_kerja}</span>
+                    </div>
+                    <div className="flex justify-between pt-0.5">
+                      <span className="text-slate-500">Status Akun:</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300 text-[10px]">
+                        <Loader2 className="h-3 w-3 animate-spin text-amber-700" />
+                        <span>MENUNGGU PERSETUJUAN</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Note */}
+                  <p className="mt-3 text-[11px] text-slate-500 leading-relaxed text-center">
+                    Tetap berada di halaman ini. Layar akan langsung berganti otomatis begitu akun Anda disetujui atau ditolak oleh Admin.
+                  </p>
+
+                  {/* Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegSuccessData(null);
+                      setActiveTab("LOGIN");
+                      setErrorMessage(null);
+                    }}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 py-2.5 px-4 text-xs font-bold text-slate-700 border border-slate-300 transition-all cursor-pointer"
+                  >
+                    <span>Tutup &amp; Kembali ke Halaman Masuk</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* Security & Official Notice Footnote */}

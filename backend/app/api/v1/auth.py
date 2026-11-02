@@ -15,6 +15,7 @@ from app.schemas.auth import (
     PenggunaDaftar,
     PenggunaMasuk,
     RegistrasiRespon,
+    StatusPendaftaranRespon,
     TokenRespon,
     VerifikasiOtpPayload,
 )
@@ -103,6 +104,52 @@ async def daftar(
         butuh_verifikasi_otp=False,
         email_terkirim_smtp=False,
         kode_otp_simulasi=None,
+    )
+
+
+@router.get("/status-pendaftaran", response_model=StatusPendaftaranRespon)
+async def cek_status_pendaftaran(
+    username: str,
+    db: AsyncSession = Depends(get_db),
+) -> StatusPendaftaranRespon:
+    """Mengecek status verifikasi pendaftaran akun secara berkala (polling real-time)."""
+    clean_username = username.strip().lower()
+    stmt = select(Pengguna).where(Pengguna.username == clean_username)
+    res = await db.execute(stmt)
+    user = res.scalars().first()
+
+    if not user:
+        # Akun yang ditolak langsung dihapus dari sistem
+        return StatusPendaftaranRespon(
+            username=clean_username,
+            status="DITOLAK",
+            pesan="Pendaftaran akun tidak ditemukan atau telah ditolak oleh Admin / Koordinator.",
+        )
+
+    if user.status_verifikasi == StatusVerifikasi.AKTIF:
+        return StatusPendaftaranRespon(
+            username=clean_username,
+            status="AKTIF",
+            nama=user.nama,
+            satuan_kerja=user.satuan_kerja,
+            pesan="Akun Anda telah disetujui dan aktif.",
+        )
+
+    if user.status_verifikasi == StatusVerifikasi.DITOLAK:
+        return StatusPendaftaranRespon(
+            username=clean_username,
+            status="DITOLAK",
+            nama=user.nama,
+            satuan_kerja=user.satuan_kerja,
+            pesan="Pendaftaran akun ditolak oleh Admin / Koordinator.",
+        )
+
+    return StatusPendaftaranRespon(
+        username=clean_username,
+        status="MENUNGGU",
+        nama=user.nama,
+        satuan_kerja=user.satuan_kerja,
+        pesan="Pendaftaran akun sedang menunggu persetujuan Admin / Koordinator PUSAKA.",
     )
 
 

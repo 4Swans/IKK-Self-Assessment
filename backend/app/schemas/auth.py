@@ -65,3 +65,11 @@ class RegistrasiRespon(BaseModel):
     butuh_verifikasi_otp: bool = False
     email_terkirim_smtp: bool = False
     kode_otp_simulasi: str | None = None
+
+
+class StatusPendaftaranRespon(BaseModel):
+    username: str
+    status: str
+    pesan: str
+    nama: str | None = None
+    satuan_kerja: str | None = None
