@@ -178,17 +178,8 @@ async def unggah_bukti_dukung(
 
     sha256_hash = hashlib.sha256(contents).hexdigest()
 
-    # Cek lapisan teks jika file PDF (pypdf)
-    ada_lapisan_teks = True
-    if ext == ".pdf":
-        try:
-            reader = pypdf.PdfReader(BytesIO(contents))
-            teks_gabungan = "".join([p.extract_text() or "" for p in reader.pages]).strip()
-            ada_lapisan_teks = len(teks_gabungan) > 20
-        except Exception:
-            ada_lapisan_teks = False
-
     # Simpan berkas ke disk
+    ada_lapisan_teks = True
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     nama_simpan = f"{uuid.uuid4()}{ext}"
     target_path = Path(settings.UPLOAD_DIR) / nama_simpan

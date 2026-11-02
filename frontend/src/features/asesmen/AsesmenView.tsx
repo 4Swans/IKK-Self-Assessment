@@ -24,7 +24,6 @@ import {
   ShieldCheck,
   Sparkles,
   FileStack,
-  AlertTriangle,
   Building,
   Info,
 } from "lucide-react";
@@ -1078,7 +1077,7 @@ export function AsesmenView() {
       if (uploadCount > 0) {
         showToast(
           "Unggah Berkas Berhasil",
-          `${uploadCount} berkas bukti dukung berhasil diunggah dan diperiksa lapisan teksnya oleh AI OCR.`,
+          `${uploadCount} berkas bukti dukung berhasil diunggah.`,
           "success"
         );
       }
@@ -1864,7 +1863,7 @@ export function AsesmenView() {
                       </label>
                     </div>
                     <p className="text-[10px] text-slate-400 mt-2">
-                      *Maksimal ukuran 25 MB per berkas. Sistem akan otomatis memvalidasi lapisan teks dokumen (OCR) untuk kelayakan SI IKK.
+                      *Maksimal ukuran 25 MB per berkas (format PDF, Word, Excel, atau Teks).
                     </p>
                   </div>
                 ) : (
@@ -1888,7 +1887,7 @@ export function AsesmenView() {
                       {isUploading && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700">
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          Mengunggah &amp; Cek AI OCR...
+                          Mengunggah berkas...
                         </span>
                       )}
                     </div>
@@ -1928,19 +1927,6 @@ export function AsesmenView() {
                             </div>
                             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
                               <span>{f.ukuran} &bull; {f.tipe.toUpperCase()}</span>
-                              {f.tipe === "pdf" && (
-                                f.ada_lapisan_teks === true ? (
-                                  <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.2 text-[9px] font-semibold text-emerald-700 border border-emerald-200" title="Dokumen memiliki lapisan teks digital (Terbaca AI SI IKK LAN)">
-                                    <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
-                                    Teks Terbaca AI
-                                  </span>
-                                ) : f.ada_lapisan_teks === false ? (
-                                  <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.2 text-[9px] font-semibold text-amber-800 border border-amber-300" title="Peringatan: Dokumen merupakan hasil scan tanpa lapisan teks OCR (AI SI IKK mungkin gagal membaca)">
-                                    <AlertTriangle className="h-2.5 w-2.5 text-amber-600" />
-                                    Pindaian / Scan
-                                  </span>
-                                ) : null
-                              )}
                             </div>
                           </div>
                         </div>

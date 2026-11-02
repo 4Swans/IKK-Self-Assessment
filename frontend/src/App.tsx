@@ -529,7 +529,7 @@ function BerandaView() {
               </div>
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Mengunggah bukti dukung digital (PDF / Word) OCR-ready</span>
+                <span>Mengunggah bukti dukung digital (PDF / Word)</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
