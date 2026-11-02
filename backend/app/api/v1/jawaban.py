@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pypdf
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -203,6 +203,7 @@ async def unggah_bukti_dukung(
         ukuran=ukuran,
         sha256=sha256_hash,
         ada_lapisan_teks=ada_lapisan_teks,
+        konten=contents,
     )
     db.add(bukti)
     await db.commit()
@@ -222,18 +223,24 @@ async def gabung_pdf_bukti(
     res_b = await db.execute(stmt_b)
     daftar_bukti = res_b.scalars().all()
 
-    pdf_files = [
-        b for b in daftar_bukti if b.nama_file.lower().endswith(".pdf") and os.path.exists(b.path)
-    ]
-    if len(pdf_files) < 2:
+    pdf_sources: list[str | BytesIO] = []
+    for b in daftar_bukti:
+        if not b.nama_file.lower().endswith(".pdf"):
+            continue
+        if os.path.exists(b.path):
+            pdf_sources.append(b.path)
+        elif b.konten:
+            pdf_sources.append(BytesIO(b.konten))
+
+    if len(pdf_sources) < 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Minimal diperlukan 2 file PDF untuk digabungkan.",
         )
 
     writer = pypdf.PdfWriter()
-    for b in pdf_files:
-        writer.append(b.path)
+    for src in pdf_sources:
+        writer.append(src)
 
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     nama_gabungan = f"gabungan_{uuid.uuid4()}.pdf"
@@ -249,12 +256,13 @@ async def gabung_pdf_bukti(
 
     bukti_gabungan = BuktiDukung(
         jawaban_id=jawaban_id,
-        nama_file=f"Gabungan_Bukti_{len(pdf_files)}_File.pdf",
+        nama_file=f"Gabungan_Bukti_{len(pdf_sources)}_File.pdf",
         path=str(target_path),
         mime="application/pdf",
         ukuran=stat.st_size,
         sha256=sha256_hash,
         ada_lapisan_teks=True,
+        konten=data,
     )
     db.add(bukti_gabungan)
     await db.commit()
@@ -314,7 +322,7 @@ async def unduh_bukti(
     bukti_id: uuid.UUID,
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> FileResponse:
+) -> Response:
     """Mengunduh atau menampilkan berkas fisik bukti dukung di tab peramban."""
     stmt = (
         select(BuktiDukung)
@@ -345,15 +353,36 @@ async def unduh_bukti(
             detail="Anda tidak memiliki hak akses mengunduh bukti dari satuan kerja lain.",
         )
 
-    if not os.path.exists(bukti.path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File fisik berkas tidak ditemukan di server.",
+    disp_type = "inline" if bukti.mime == "application/pdf" else "attachment"
+
+    # 1. Cek dari disk fisik terlebih dahulu (prioritas di server produksi)
+    if os.path.exists(bukti.path):
+        return FileResponse(
+            path=bukti.path,
+            filename=bukti.nama_file,
+            media_type=bukti.mime,
+            content_disposition_type=disp_type,
         )
 
-    return FileResponse(
-        path=bukti.path,
-        filename=bukti.nama_file,
-        media_type=bukti.mime,
-        content_disposition_type="inline" if bukti.mime == "application/pdf" else "attachment",
+    # 2. Fallback: Sajikan langsung dari cadangan biner database (efektif di Vercel/serverless)
+    if bukti.konten:
+        try:
+            os.makedirs(os.path.dirname(bukti.path), exist_ok=True)
+            with open(bukti.path, "wb") as f:
+                f.write(bukti.konten)
+        except OSError:
+            pass
+
+        return Response(
+            content=bukti.konten,
+            media_type=bukti.mime,
+            headers={"Content-Disposition": f'{disp_type}; filename="{bukti.nama_file}"'},
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=(
+            "File fisik berkas tidak ditemukan di server. "
+            "Silakan unggah ulang dokumen bukti dukung."
+        ),
     )

@@ -102,6 +102,12 @@ async def ensure_vercel_db_initialized() -> None:
                                 "ADD COLUMN IF NOT EXISTS catatan_penolakan TEXT;"
                             )
                         )
+                        await conn.execute(
+                            text(
+                                "ALTER TABLE bukti_dukung "
+                                "ADD COLUMN IF NOT EXISTS konten BYTEA;"
+                            )
+                        )
                     await muat_instrumen(2026)
                     await seed_production_initial_data()
                     await _simpan_sidik_jari(sidik_jari)
