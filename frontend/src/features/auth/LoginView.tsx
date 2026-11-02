@@ -153,9 +153,14 @@ export function LoginView() {
       await loginDenganUsername(username.trim(), password);
       navigate("/kebijakan");
     } catch (err: any) {
-      const detail =
-        err?.response?.data?.detail ||
-        "Gagal masuk. Periksa kembali nama pengguna (username) dan kata sandi Anda.";
+      let detail = err?.response?.data?.detail;
+      if (!err?.response) {
+        detail = "Tidak dapat terhubung ke server backend (port 8000). Pastikan backend aktif.";
+      } else if (err.response.status === 500) {
+        detail = "Server backend gagal terhubung ke basis data (PostgreSQL port 5433). Pastikan database PostgreSQL aktif.";
+      } else if (!detail) {
+        detail = "Gagal masuk. Periksa kembali nama pengguna (username) dan kata sandi Anda.";
+      }
       setErrorMessage(detail);
     } finally {
       setIsLoading(false);
