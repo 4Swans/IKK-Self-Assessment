@@ -71,7 +71,7 @@ async def simpan_jawaban(
         .options(selectinload(Jawaban.bukti_dukung_list))
     )
     res_j = await db.execute(stmt_j)
-    jawaban = res_j.scalar_one_or_none()
+    jawaban = res_j.scalars().first()
 
     if not jawaban:
         jawaban = Jawaban(

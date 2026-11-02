@@ -93,7 +93,7 @@ async def buat_pengguna(
     # Cek username duplikat
     stmt_u = select(Pengguna).where(Pengguna.username == payload.username)
     res_u = await db.execute(stmt_u)
-    if res_u.scalar_one_or_none():
+    if res_u.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Nama pengguna (username) sudah terdaftar dalam sistem.",
@@ -103,7 +103,7 @@ async def buat_pengguna(
     if payload.email:
         stmt_e = select(Pengguna).where(Pengguna.email == payload.email)
         res_e = await db.execute(stmt_e)
-        if res_e.scalar_one_or_none():
+        if res_e.scalars().first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Alamat email sudah terdaftar dalam sistem.",
@@ -193,7 +193,7 @@ async def ubah_pengguna(
     if payload.username and payload.username != user.username:
         stmt_u = select(Pengguna).where(Pengguna.username == payload.username)
         res_u = await db.execute(stmt_u)
-        if res_u.scalar_one_or_none():
+        if res_u.scalars().first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Nama pengguna (username) sudah digunakan oleh akun lain.",
@@ -204,7 +204,7 @@ async def ubah_pengguna(
     if payload.email and payload.email != user.email:
         stmt_e = select(Pengguna).where(Pengguna.email == payload.email)
         res_e = await db.execute(stmt_e)
-        if res_e.scalar_one_or_none():
+        if res_e.scalars().first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Alamat email sudah digunakan oleh akun lain.",

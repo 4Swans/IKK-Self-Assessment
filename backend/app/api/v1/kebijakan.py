@@ -328,7 +328,7 @@ async def ubah_kebijakan(
         if payload.dipilih_untuk_si_ikk:
             stmt_as = select(Asesmen).where(Asesmen.kebijakan_id == item.id)
             res_as = await db.execute(stmt_as)
-            asesmen = res_as.scalar_one_or_none()
+            asesmen = res_as.scalars().first()
             if not asesmen or asesmen.status not in [
                 StatusAsesmen.DISETUJUI,
                 StatusAsesmen.TERKIRIM_SI_IKK,

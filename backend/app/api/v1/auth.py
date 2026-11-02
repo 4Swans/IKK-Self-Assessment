@@ -50,7 +50,7 @@ async def daftar(
     # Periksa Username duplikat
     stmt_u = select(Pengguna).where(Pengguna.username == username)
     res_u = await db.execute(stmt_u)
-    if res_u.scalar_one_or_none():
+    if res_u.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Username '{username}' sudah digunakan. Silakan pilih username lain.",
@@ -59,7 +59,7 @@ async def daftar(
     # Periksa NIP duplikat
     stmt_nip = select(Pengguna).where(Pengguna.nip == clean_nip)
     res_nip = await db.execute(stmt_nip)
-    if res_nip.scalar_one_or_none():
+    if res_nip.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"NIP {clean_nip} sudah terdaftar dalam sistem.",
@@ -69,7 +69,7 @@ async def daftar(
     if clean_email:
         stmt_e = select(Pengguna).where(Pengguna.email == clean_email)
         res_e = await db.execute(stmt_e)
-        if res_e.scalar_one_or_none():
+        if res_e.scalars().first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Alamat email ini sudah terdaftar dalam sistem.",
@@ -118,7 +118,7 @@ async def verifikasi_otp(
     clean_email = payload.email.strip().lower()
     stmt = select(Pengguna).where(Pengguna.email == clean_email)
     res = await db.execute(stmt)
-    user = res.scalar_one_or_none()
+    user = res.scalars().first()
 
     if not user:
         raise HTTPException(
@@ -177,7 +177,7 @@ async def kirim_ulang_otp(
     clean_email = payload.email.strip().lower()
     stmt = select(Pengguna).where(Pengguna.email == clean_email)
     res = await db.execute(stmt)
-    user = res.scalar_one_or_none()
+    user = res.scalars().first()
 
     if not user:
         raise HTTPException(
@@ -226,7 +226,7 @@ async def masuk(
         (Pengguna.username == kredensial) | (Pengguna.email == kredensial)
     )
     res = await db.execute(stmt)
-    user = res.scalar_one_or_none()
+    user = res.scalars().first()
 
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(

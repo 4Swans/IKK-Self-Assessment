@@ -218,7 +218,7 @@ async def ambil_asesmen_per_kebijakan(
         )
     )
     res = await db.execute(stmt)
-    asesmen = res.scalar_one_or_none()
+    asesmen = res.scalars().first()
     if not asesmen:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen untuk kebijakan ini belum ada."

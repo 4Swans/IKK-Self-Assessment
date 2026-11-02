@@ -29,7 +29,7 @@ async def buat_periode(
         Periode.instansi == payload.instansi, Periode.tahun == payload.tahun
     )
     res = await db.execute(stmt)
-    if res.scalar_one_or_none():
+    if res.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Periode {payload.tahun} untuk instansi '{payload.instansi}' sudah terdaftar.",

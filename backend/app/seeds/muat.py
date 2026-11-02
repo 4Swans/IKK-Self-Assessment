@@ -47,7 +47,10 @@ async def muat_instrumen(tahun: int) -> None:
             Instrumen.tahun == data["tahun"], Instrumen.versi == data["versi"]
         )
         res = await session.execute(stmt)
-        existing = res.scalar_one_or_none()
+        existing_list = res.scalars().all()
+        existing = existing_list[0] if existing_list else None
+        for extra in existing_list[1:]:
+            extra.aktif = False
 
         if existing:
             print(

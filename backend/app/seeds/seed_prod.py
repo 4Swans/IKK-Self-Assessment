@@ -51,7 +51,7 @@ async def seed_production_initial_data() -> None:
                 (Pengguna.username == str(acc["username"])) | (Pengguna.email == str(acc["email"]))
             )
             res_u = await session.execute(stmt_u)
-            existing_u = res_u.scalar_one_or_none()
+            existing_u = res_u.scalars().first()
 
             if not existing_u:
                 peran_val = acc["peran"]
@@ -97,6 +97,9 @@ async def seed_production_initial_data() -> None:
                 session.add(periode)
                 await session.flush()
                 print("Periode Pengukuran 2026 berhasil diinisialisasi.")
+            elif periode.instrumen_id != instrumen.id:
+                periode.instrumen_id = instrumen.id
+                await session.flush()
 
         await session.commit()
 

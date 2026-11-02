@@ -67,7 +67,7 @@ async def seed_users_and_initial_data() -> None:
                 (Pengguna.username == u["username"]) | (Pengguna.email == u["email"])
             )
             res = await session.execute(stmt)
-            existing = res.scalar_one_or_none()
+            existing = res.scalars().first()
             if not existing:
                 new_user = Pengguna(
                     nama=u["nama"],
@@ -105,7 +105,7 @@ async def seed_users_and_initial_data() -> None:
                 Periode.instansi == "Kementerian Xaka", Periode.tahun == 2026
             )
             res_per = await session.execute(stmt_per)
-            periode = res_per.scalar_one_or_none()
+            periode = res_per.scalars().first()
 
             if not periode:
                 periode = Periode(
