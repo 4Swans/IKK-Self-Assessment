@@ -235,6 +235,7 @@ export function KebijakanView() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formNama, setFormNama] = useState("");
   const [formJenis, setFormJenis] = useState("Permen");
+  const [formJenisKustom, setFormJenisKustom] = useState("");
   const [formNomor, setFormNomor] = useState("");
   const [formTanggal, setFormTanggal] = useState("2024-06-01");
   const [formRekomendasi, setFormRekomendasi] = useState("");
@@ -275,6 +276,11 @@ export function KebijakanView() {
     e.preventDefault();
     if (!formNama.trim()) return;
 
+    const finalJenis =
+      formJenis === "Lainnya"
+        ? formJenisKustom.trim() || "Lainnya"
+        : formJenis;
+
     // Simpan ke PostgreSQL Backend via TanStack Query Mutation jika periode aktif tersedia
     if (activePeriodeId) {
       try {
@@ -287,7 +293,7 @@ export function KebijakanView() {
           data: {
             periode_id: activePeriodeId,
             nama: formNama.trim(),
-            jenis_dasar_hukum: formJenis,
+            jenis_dasar_hukum: finalJenis,
             nomor_dasar_hukum: formNomor.trim() || "-",
             tanggal_penetapan: formTanggal,
             rekomendasi: formRekomendasi.trim() || undefined,
@@ -314,6 +320,8 @@ export function KebijakanView() {
         setFormNama("");
         setFormNomor("");
         setFormRekomendasi("");
+        setFormJenis("Permen");
+        setFormJenisKustom("");
 
         setToast({
           show: true,
@@ -333,8 +341,8 @@ export function KebijakanView() {
     const newItem: KebijakanItem = {
       id: Date.now().toString(),
       nama: formNama.trim(),
-      jenis_dasar_hukum: formJenis,
-      nomor_dasar_hukum: formNomor.trim(),
+      jenis_dasar_hukum: finalJenis,
+      nomor_dasar_hukum: formNomor.trim() || "-",
       tanggal_penetapan: formTanggal,
       dipilih_untuk_si_ikk: false,
       rekomendasi: formRekomendasi.trim(),
@@ -349,6 +357,8 @@ export function KebijakanView() {
     setFormNama("");
     setFormNomor("");
     setFormRekomendasi("");
+    setFormJenis("Permen");
+    setFormJenisKustom("");
 
     setToast({
       show: true,
@@ -614,8 +624,12 @@ export function KebijakanView() {
             </h2>
             <button
               type="button"
-              onClick={() => setShowAddForm(false)}
-              className="text-slate-400 hover:text-slate-600"
+              onClick={() => {
+                setShowAddForm(false);
+                setFormJenis("Permen");
+                setFormJenisKustom("");
+              }}
+              className="text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -624,16 +638,19 @@ export function KebijakanView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nama Kebijakan Strategis
+                Nama Kebijakan
               </label>
               <input
                 type="text"
                 required
                 value={formNama}
                 onChange={(e) => setFormNama(e.target.value)}
-                placeholder="Contoh: Peraturan Menteri tentang Standar Layanan Informasi Publik"
+                placeholder="Contoh: Digitalent, PP Tunas, Permenkominfo Standar Layanan Publik"
                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
               />
+              <p className="mt-1 text-[11px] text-slate-500">
+                (isi nama program, kebijakan contohnya : Digitalent, PP Tunas dll)
+              </p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -641,8 +658,13 @@ export function KebijakanView() {
               </label>
               <select
                 value={formJenis}
-                onChange={(e) => setFormJenis(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                onChange={(e) => {
+                  setFormJenis(e.target.value);
+                  if (e.target.value !== "Lainnya") {
+                    setFormJenisKustom("");
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="UU">Undang-Undang (UU)</option>
                 <option value="PP">Peraturan Pemerintah (PP)</option>
@@ -653,6 +675,21 @@ export function KebijakanView() {
                 <option value="Pergub">Peraturan Gubernur (Pergub)</option>
                 <option value="Lainnya">Lainnya</option>
               </select>
+              {formJenis === "Lainnya" && (
+                <div className="mt-2 animate-in fade-in duration-150">
+                  <input
+                    type="text"
+                    required
+                    value={formJenisKustom}
+                    onChange={(e) => setFormJenisKustom(e.target.value)}
+                    placeholder="Ketik jenis dasar hukum / bentuk kebijakan..."
+                    className="w-full rounded-xl border border-blue-300 bg-blue-50/40 px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Contoh: Program Strategis, Surat Edaran, SK, Petunjuk Teknis, dll.
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -660,12 +697,14 @@ export function KebijakanView() {
               </label>
               <input
                 type="text"
-                required
                 value={formNomor}
                 onChange={(e) => setFormNomor(e.target.value)}
-                placeholder="Contoh: Permenkominfo No. 12 Tahun 2023"
+                placeholder="Contoh: Permenkominfo No. 12 Tahun 2023 (atau '-' jika program)"
                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
               />
+              <p className="mt-1 text-[11px] text-slate-500">
+                (Nomor regulasi/SK, atau isi &apos;-&apos; jika merupakan program)
+              </p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -678,6 +717,9 @@ export function KebijakanView() {
                 onChange={(e) => setFormTanggal(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
               />
+              <p className="mt-1 text-[11px] text-slate-500">
+                (tanggal peluncuran program atau penetapan peraturan)
+              </p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -724,8 +766,12 @@ export function KebijakanView() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setShowAddForm(false)}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+              onClick={() => {
+                setShowAddForm(false);
+                setFormJenis("Permen");
+                setFormJenisKustom("");
+              }}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               Batal
             </button>
