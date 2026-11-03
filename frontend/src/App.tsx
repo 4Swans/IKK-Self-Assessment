@@ -11,6 +11,10 @@ import {
   Calculator,
   FileCheck,
   Users,
+  Send,
+  FolderPlus,
+  FileSpreadsheet,
+  ShieldCheck,
 } from "lucide-react";
 
 import { KebijakanView } from "./features/kebijakan/KebijakanView";
@@ -241,46 +245,104 @@ function AppShell() {
 function BerandaView() {
   const { isAuthenticated, peran, user, isAnalis, isKoordinator } = useAuth();
 
+  const alurLangkah = [
+    {
+      no: "01",
+      peran: "Analis Satker",
+      peranBadge: "bg-blue-50 text-blue-700 border-blue-200",
+      judul: "Input Kebijakan & Program",
+      deskripsi:
+        "Satker mendaftarkan regulasi (UU, PP, Permen) maupun program strategis kementerian (Digitalent, PP Tunas, dll).",
+      status: "Status: DRAF",
+      statusBadge: "bg-slate-100 text-slate-700 border-slate-300",
+      icon: FolderPlus,
+    },
+    {
+      no: "02",
+      peran: "Analis Satker",
+      peranBadge: "bg-blue-50 text-blue-700 border-blue-200",
+      judul: "Asesmen & Bukti Digital",
+      deskripsi:
+        "Memilih opsi A–E pada 11 indikator 4 dimensi dan mengunggah dokumen bukti resmi (PDF / Word hingga 25 MB).",
+      status: "Skor Desimal Presisi",
+      statusBadge: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      icon: CheckCircle2,
+    },
+    {
+      no: "03",
+      peran: "Analis Satker",
+      peranBadge: "bg-blue-50 text-blue-700 border-blue-200",
+      judul: "Pengajuan ke PUSAKA",
+      deskripsi:
+        "Mengajukan asesmen lengkap. Sistem otomatis memvalidasi ketersediaan opsi dan bukti sebelum dikirim.",
+      status: "Status: DIAJUKAN",
+      statusBadge: "bg-amber-50 text-amber-700 border-amber-200",
+      icon: Send,
+    },
+    {
+      no: "04",
+      peran: "Koordinator PUSAKA",
+      peranBadge: "bg-purple-50 text-purple-700 border-purple-200",
+      judul: "Telaah & Verifikasi Bukti",
+      deskripsi:
+        "Koordinator menelaah keabsahan bukti: menyetujui langsung atau mengembalikan dengan catatan tertulis.",
+      status: "DISETUJUI / REVISI",
+      statusBadge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      icon: ShieldCheck,
+    },
+    {
+      no: "05",
+      peran: "Koordinator PUSAKA",
+      peranBadge: "bg-purple-50 text-purple-700 border-purple-200",
+      judul: "Penetapan 3 Terbaik & Ekspor",
+      deskripsi:
+        "Menetapkan tepat 3 kebijakan unggulan, menandai siap kirim, dan mengunduh berkas Excel resmi LAN RI 2026.",
+      status: "TERKIRIM SI IKK",
+      statusBadge: "bg-blue-100 text-[#1E304B] border-blue-300 font-bold",
+      icon: FileSpreadsheet,
+    },
+  ];
+
   const dimensiData = [
     {
       kode: "Profil",
       nama: "Keterlibatan JFAK",
       bobot: "10,00%",
-      indikator: "1 Pertanyaan Profil",
-      bukti: "Surat Penunjukan resmi yang dapat diakses publik",
+      indikator: "1 Indikator Profil (Keterlibatan Analis Kebijakan)",
+      bukti: "Surat Keputusan (SK) atau Surat Penunjukan resmi JFAK",
       rujukan: "Panduan Pengukuran IKK LAN RI",
     },
     {
       kode: "Dimensi A",
       nama: "Perencanaan Kebijakan",
-      bobot: "25,00%",
-      indikator: "3 Indikator (A1, A2, A3)",
-      bukti: "Laporan kajian valid, risalah konsultasi publik, analisis RIA / ROCCIPI",
-      rujukan: "UU 12/2011, Permenpan 16/2017",
+      bobot: "20,00%",
+      indikator: "3 Indikator: A1 (40%), A2 (40%), A3 (20%)",
+      bukti: "Laporan kajian/riset valid, risalah konsultasi publik, analisis dampak RIA / ROCCIPI",
+      rujukan: "UU 12/2011, Permenpan RB 16/2017",
     },
     {
       kode: "Dimensi B",
       nama: "Implementasi Kebijakan",
-      bobot: "30,00%",
-      indikator: "3 Indikator (B1, B2, B3)",
-      bukti: "Dokumen SOP/Bispro, laporan monev triwulan/tahunan, laporan audit SAKIP",
-      rujukan: "Permenpan 35/2012, Permenpan 15/2014",
+      bobot: "25,00%",
+      indikator: "3 Indikator: B1 (35%), B2 (35%), B3 (30%)",
+      bukti: "Dokumen SOP/Bispro pelaksanaan, laporan monev berkala, hasil pengawasan / audit kebijakan",
+      rujukan: "Permenpan RB 35/2012, Permenpan RB 15/2014",
     },
     {
       kode: "Dimensi C",
-      nama: "Evaluasi dan Keberlanjutan",
-      bobot: "15,00%",
-      indikator: "3 Indikator (C1, C2, C3)",
-      bukti: "Laporan LPPD, survei kepuasan masyarakat independen, analisis keselarasan regulasi",
-      rujukan: "Pedoman Evaluasi BPHN 2019",
+      nama: "Evaluasi & Keberlanjutan",
+      bobot: "30,00%",
+      indikator: "3 Indikator: C1 (35%), C2 (35%), C3 (30%)",
+      bukti: "Laporan evaluasi kebijakan, data capaian indikator / survei kepuasan publik, analisis keselarasan regulasi",
+      rujukan: "Pedoman Evaluasi Kebijakan LAN RI & BPHN",
     },
     {
       kode: "Dimensi D",
-      nama: "Transparansi dan Partisipasi Publik",
-      bobot: "20,00%",
-      indikator: "2 Indikator (D1, D2)",
-      bukti: "Portal resmi multi-format, dokumentasi riwayat tanggapan aduan publik",
-      rujukan: "UU Keterbukaan Informasi Publik",
+      nama: "Transparansi & Partisipasi Publik",
+      bobot: "15,00%",
+      indikator: "2 Indikator: D1 (50%), D2 (50%)",
+      bukti: "Publikasi portal/media resmi, kanal pengaduan masyarakat & dokumentasi tindak lanjut masukan publik",
+      rujukan: "UU 14/2008 KIP, Perpres SPBE",
     },
   ];
 
@@ -298,15 +360,15 @@ function BerandaView() {
               <span className="h-2 w-2 rounded-full bg-[#B1C9EF] animate-pulse" />
               <span>
                 {isAuthenticated
-                  ? `Sesi Aktif: ${user.nama} (${peran})`
-                  : "Xaka IKK Self-Assessment &bull; Penyiapan IKK 2026"}
+                  ? `Sesi Aktif: ${user.nama} (${peran} • ${user.satuan_kerja || "Satuan Kerja"})`
+                  : "Ruang Kerja Penyiapan Penilaian Mandiri IKK 2026"}
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-              Penyiapan Penilaian Mandiri Indeks Kualitas Kebijakan
+              Penyiapan Penilaian Mandiri Indeks Kualitas Kebijakan (IKK)
             </h1>
             <p className="text-sm leading-relaxed text-[#D5DEEF]">
-              Ruang kerja internal instansi untuk mengisi indikator penilaian mandiri, menghimpun dan menata berkas bukti dukung (PDF/Word serta tautan awan), memantau kalkulasi skor seketika dengan formula resmi LAN RI, serta memverifikasi kesiapan bukti sebelum disalin ke SI IKK.
+              Ruang kerja terpadu internal Satuan Kerja Kementerian Komunikasi dan Digital bersama Pusat Kebijakan Strategis (PUSAKA) untuk mendaftarkan kebijakan atau program strategis, melakukan asesmen mandiri berbasis bukti dukung digital, dan menyaring 3 kebijakan unggulan sebelum dilaporkan ke SI IKK LAN RI.
             </p>
 
             {/* Dynamic CTA based on Auth & Role */}
@@ -321,58 +383,58 @@ function BerandaView() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
-                    href="#matriks-peran"
+                    href="#alur-mekanisme"
                     className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
                   >
-                    <span>Pelajari Wewenang Peran</span>
+                    <span>Pelajari Alur Mekanisme</span>
                   </a>
                 </>
               ) : isAnalis ? (
                 <>
                   <Link
                     to="/asesmen"
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#395886] transition-all hover:bg-[#F0F3FA] hover:shadow-md"
+                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#395886] transition-all hover:bg-[#F0F3FA] hover:shadow-md cursor-pointer"
                   >
                     <span>Isi Form Asesmen &amp; Bukti Dukung</span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
                     to="/kebijakan"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 cursor-pointer"
                   >
-                    <span>Tinjau 3 Kebijakan Strategis</span>
+                    <span>Daftarkan Kebijakan Satker</span>
                   </Link>
                 </>
               ) : isKoordinator ? (
                 <>
                   <Link
                     to="/kebijakan"
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#395886] transition-all hover:bg-[#F0F3FA] hover:shadow-md"
+                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#395886] transition-all hover:bg-[#F0F3FA] hover:shadow-md cursor-pointer"
                   >
-                    <span>Tetapkan 3 Kebijakan Strategis SI-IKK</span>
+                    <span>Review &amp; Setujui Asesmen Satker</span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    to="/asesmen"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                    to="/rekap"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 cursor-pointer"
                   >
-                    <span>Review &amp; Setujui Asesmen Analis</span>
+                    <span>Tetapkan 3 Kebijakan SI-IKK</span>
                   </Link>
                 </>
               ) : (
                 <>
                   <Link
                     to="/pengguna"
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#395886] transition-all hover:bg-[#F0F3FA] hover:shadow-md"
+                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#395886] transition-all hover:bg-[#F0F3FA] hover:shadow-md cursor-pointer"
                   >
                     <span>Buka Manajemen Akun Pengguna</span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
                     to="/kebijakan"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 cursor-pointer"
                   >
-                    <span>Monitoring Penilaian Instansi</span>
+                    <span>Monitoring Penilaian Seluruh Satker</span>
                   </Link>
                 </>
               )}
@@ -387,21 +449,85 @@ function BerandaView() {
               <div className="text-[10px] text-[#B1C9EF] mt-0.5">Versi LAN RI Terkini</div>
             </div>
             <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
-              <div className="text-[11px] font-medium text-[#D5DEEF]">Target Kebijakan</div>
-              <div className="mt-1 text-lg font-bold text-white">3 Regulasi</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Wajib SI IKK</div>
+              <div className="text-[11px] font-medium text-[#D5DEEF]">Target SI IKK</div>
+              <div className="mt-1 text-lg font-bold text-white">Tepat 3 Kebijakan</div>
+              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Regulasi &amp; Program</div>
             </div>
             <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
               <div className="text-[11px] font-medium text-[#D5DEEF]">Cakupan Dimensi</div>
               <div className="mt-1 text-lg font-bold text-white">4 Dimensi</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">11 Indikator + Profil</div>
+              <div className="text-[10px] text-[#B1C9EF] mt-0.5">11 Indikator + Profil JFAK</div>
             </div>
             <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
-              <div className="text-[11px] font-medium text-[#D5DEEF]">Status Integrasi</div>
-              <div className="mt-1 text-lg font-bold text-emerald-300">Siap Salin</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Format SI IKK</div>
+              <div className="text-[11px] font-medium text-[#D5DEEF]">Formula Skoring</div>
+              <div className="mt-1 text-lg font-bold text-emerald-300">Presisi Desimal</div>
+              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Kalkulasi Otomatis</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Alur Mekanisme Kerja Section (Baru: Sangat Membantu Presentasi) */}
+      <div id="alur-mekanisme" className="space-y-3 pt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#395886] flex items-center gap-1.5">
+              <span>Alur Mekanisme Kerja Penilaian Mandiri IKK</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Mekanisme kolaboratif 5 tahap mulai dari pendaftaran kebijakan oleh Satker hingga disetujui PUSAKA untuk SI IKK LAN RI.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0F3FA] border border-[#B1C9EF] px-2.5 py-1 text-[11px] font-semibold text-[#395886] w-fit shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>Alur Standar Terpadu</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {alurLangkah.map((step) => {
+            const Icon = step.icon;
+            return (
+              <div
+                key={step.no}
+                className="relative flex flex-col justify-between rounded-2xl border border-[#D5DEEF] bg-white/95 p-4 shadow-palette-sm transition-all hover:border-[#8AAEE0] hover:shadow-palette-md"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-xs font-extrabold font-mono text-[#395886]/70">
+                      {step.no}
+                    </span>
+                    <span
+                      className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-bold ${step.peranBadge}`}
+                    >
+                      {step.peran}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 rounded-lg bg-[#F0F3FA] text-[#395886] border border-[#B1C9EF]">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-[#1E304B] leading-tight">
+                      {step.judul}
+                    </h3>
+                  </div>
+
+                  <p className="text-[11px] text-slate-600 leading-relaxed mb-3">
+                    {step.deskripsi}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <span
+                    className={`inline-block w-full text-center rounded-lg border px-2 py-1 text-[10px] font-semibold ${step.statusBadge}`}
+                  >
+                    {step.status}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -416,7 +542,7 @@ function BerandaView() {
           </div>
           <div className="text-xl font-bold text-[#1E304B]">100% Terkalibrasi</div>
           <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-            Menggunakan pembobotan 10% Profil + 25% A + 30% B + 15% C + 20% D dengan akurasi desimal presisi.
+            Menggunakan pembobotan resmi: 10% Profil JFAK + 20% Dimensi A + 25% Dimensi B + 30% Dimensi C + 15% Dimensi D dengan kalkulasi eksak desimal tanpa eror rumus manual.
           </p>
         </div>
 
@@ -427,9 +553,9 @@ function BerandaView() {
             </div>
             <span>Holding Area Bukti Digital</span>
           </div>
-          <div className="text-xl font-bold text-[#1E304B]">Penataan Berkas &amp; Tautan</div>
+          <div className="text-xl font-bold text-[#1E304B]">Penataan Berkas Resmi</div>
           <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-            Menampung dokumen bukti (PDF/Word drag &amp; drop serta tautan awan on-demand) untuk telaah internal instansi.
+            Menampung dokumen bukti digital resmi (PDF / Word hingga 25 MB per berkas), penataan per indikator, dan fitur penggabungan otomatis 1 PDF sesuai standar SI IKK.
           </p>
         </div>
 
@@ -438,11 +564,11 @@ function BerandaView() {
             <div className="p-1.5 rounded-lg bg-[#F0F3FA] text-[#4E73A9] border border-[#B1C9EF]">
               <Layers className="h-4 w-4" />
             </div>
-            <span>Struktur Kebijakan</span>
+            <span>Penyaringan Kebijakan</span>
           </div>
-          <div className="text-xl font-bold text-[#1E304B]">Tepat 3 Kebijakan</div>
+          <div className="text-xl font-bold text-[#1E304B]">Tepat 3 Kebijakan Unggulan</div>
           <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-            Menyaring kandidat kebijakan publik strategis yang telah ditetapkan dan berdampak langsung ke masyarakat luas.
+            Mendukung inventarisasi regulasi formal maupun program strategis kementerian (Digitalent, PP Tunas, dll) antarsatker dengan penyaringan 3 terbaik untuk SI IKK.
           </p>
         </div>
       </div>
@@ -460,16 +586,16 @@ function BerandaView() {
                   Kode &amp; Dimensi
                 </th>
                 <th scope="col" className="px-4 py-3.5 text-center">
-                  Bobot Total
+                  Bobot Dimensi
                 </th>
                 <th scope="col" className="px-4 py-3.5">
-                  Cakupan Indikator
+                  Cakupan Indikator &amp; Bobot Relatif
                 </th>
                 <th scope="col" className="px-4 py-3.5">
                   Persyaratan Bukti Dukung
                 </th>
                 <th scope="col" className="px-4 py-3.5">
-                  Rujukan Regulasi
+                  Rujukan Ketentuan
                 </th>
               </tr>
             </thead>
@@ -485,7 +611,7 @@ function BerandaView() {
                       {d.bobot}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-slate-700">{d.indikator}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{d.indikator}</td>
                   <td className="px-4 py-3.5 text-slate-600 max-w-xs leading-relaxed">
                     {d.bukti}
                   </td>
@@ -503,7 +629,7 @@ function BerandaView() {
       <div id="matriks-peran" className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#395886]">
-            Matriks Hak Akses &amp; Wewenang Setiap Peran (Sesuai Panduan LAN RI)
+            Matriks Hak Akses &amp; Wewenang Setiap Peran (Sesuai Tata Kelola Komdigi &amp; LAN RI)
           </h2>
           <span className="text-[11px] text-slate-500 font-medium">
             Role-Based Access Control (RBAC)
@@ -516,27 +642,31 @@ function BerandaView() {
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F0F3FA] text-[#395886] border border-[#B1C9EF] px-2.5 py-1 text-xs font-bold">
                 <Users className="h-3.5 w-3.5" />
-                <span>Analis Instansi</span>
+                <span>Analis Satker Komdigi</span>
               </span>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed mb-3">
-              Jabatan Fungsional Analis Kebijakan (JFAK) yang ditugaskan secara resmi oleh pimpinan instansi.
+              Jabatan Fungsional Analis Kebijakan (JFAK) atau perwakilan Satuan Kerja (Ditjen Aptika, PPI, SDPPI, IKP, BPSDM).
             </p>
             <div className="space-y-1.5 text-xs">
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Mengisi profil JFAK (10%) &amp; indikator 4 dimensi A1–D2 (90%)</span>
+                <span>Mendaftarkan regulasi / program strategis milik satkernya</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Mengunggah bukti dukung digital (PDF / Word)</span>
+                <span>Mengisi profil JFAK (10%) &amp; 11 indikator 4 dimensi A1–D2 (90%)</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Simpan draf dan tombol <strong>Ajukan ke Koordinator</strong></span>
+                <span>Mengunggah bukti dukung berkas digital resmi (PDF / Word)</span>
+              </div>
+              <div className="flex items-start gap-1.5 text-slate-700">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span>Mengajukan asesmen lengkap ke Koordinator PUSAKA</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-500 italic pt-1 border-t border-slate-100">
-                <span>&bull; Khusus kebijakan milik satuan kerja analis terkait</span>
+                <span>&bull; Data terisolasi aman: satker hanya dapat mengelola kebijakannya sendiri</span>
               </div>
             </div>
           </div>
@@ -546,11 +676,11 @@ function BerandaView() {
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#395886] text-white border border-[#243957] px-2.5 py-1 text-xs font-bold shadow-2xs">
                 <Award className="h-3.5 w-3.5" />
-                <span>Koordinator Instansi</span>
+                <span>Koordinator PUSAKA</span>
               </span>
             </div>
             <p className="text-xs text-slate-700 leading-relaxed mb-3">
-              Pejabat penanggung jawab pelaksanaan pengukuran mandiri IKK di lingkungan instansi.
+              Pusat Kebijakan Strategis (PUSAKA) selaku penanggung jawab koordinasi pengukuran mandiri IKK kementerian.
             </p>
             <div className="space-y-1.5 text-xs">
               <div className="flex items-start gap-1.5 text-slate-800">
@@ -559,15 +689,15 @@ function BerandaView() {
               </div>
               <div className="flex items-start gap-1.5 text-slate-800">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Menetapkan <strong>tepat 3 kebijakan strategis</strong> SI-IKK</span>
+                <span>Menelaah berkas bukti dukung &amp; <strong>Setujui</strong> / <strong>Kembalikan</strong> asesmen</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-800">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span><strong>Menyetujui</strong> atau <strong>Kembalikan</strong> asesmen (wajib catatan)</span>
+                <span>Menetapkan <strong>tepat 3 kebijakan unggulan</strong> untuk SI IKK</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-800">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Ekspor resmi Excel Form 2026 &amp; Rekapitulasi PDF</span>
+                <span>Ekspor resmi Excel Form LAN 2026 &amp; Rekapitulasi Laporan PDF</span>
               </div>
             </div>
           </div>
@@ -581,23 +711,23 @@ function BerandaView() {
               </span>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed mb-3">
-              Pengelola teknis portal penilaian mandiri internal instansi.
+              Pengelola teknis platform penilaian mandiri dan tata kelola akun pengguna sistem.
             </p>
             <div className="space-y-1.5 text-xs">
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span><strong>Manajemen Akun Pengguna</strong> (Edit profil, peran, instansi)</span>
+                <span><strong>Manajemen Akun Pengguna</strong> (Persetujuan, tolak registrasi, edit profil)</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Reset kata sandi pengguna staf &amp; tambah akun</span>
+                <span>Kelola master instrumen, versi pengukuran, dan pembobotan</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Supervisi seluruh alur &amp; monitoring data instansi</span>
+                <span>Supervisi seluruh alur kerja &amp; pemantauan integritas data</span>
               </div>
               <div className="flex items-start gap-1.5 text-slate-500 italic pt-1 border-t border-slate-100">
-                <span>&bull; Modul Manajemen Akun terisolasi khusus Admin</span>
+                <span>&bull; Modul Manajemen Akun terisolasi khusus Admin &amp; Koordinator</span>
               </div>
             </div>
           </div>
