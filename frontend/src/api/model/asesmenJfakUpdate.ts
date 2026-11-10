@@ -12,4 +12,5 @@ export interface AsesmenJfakUpdate {
   melibatkan_jfak: boolean;
   penjelasan_jfak?: AsesmenJfakUpdatePenjelasanJfak;
   surat_penunjukan_jfak?: AsesmenJfakUpdateSuratPenunjukanJfak;
+  catatan_koordinator_jfak?: string | null;
 }

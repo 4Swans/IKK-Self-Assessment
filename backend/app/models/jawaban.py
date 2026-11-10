@@ -31,6 +31,7 @@ class Jawaban(Base):
     penjelasan: Mapped[str | None] = mapped_column(Text, nullable=True)
     tautan_bukti: Mapped[str | None] = mapped_column(Text, nullable=True)
     akses_publik_dicek: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    catatan_koordinator: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     asesmen: Mapped["Asesmen"] = relationship("Asesmen", back_populates="jawaban_list")
     pertanyaan: Mapped["Pertanyaan"] = relationship("Pertanyaan")

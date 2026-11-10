@@ -15,6 +15,9 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  Upload,
+  Eye,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -34,7 +37,13 @@ import {
   useDaftarKebijakanApiV1KebijakanGet,
   useTambahKebijakanApiV1KebijakanPost,
   useHapusKebijakanApiV1KebijakanKebijakanIdDelete,
+  unggahDasarHukumApiV1KebijakanKebijakanIdUnggahDasarHukumPost,
+  unggahRkaklApiV1KebijakanKebijakanIdUnggahRkaklPost,
+  hapusDasarHukumApiV1KebijakanKebijakanIdHapusDasarHukumDelete,
+  hapusRkaklApiV1KebijakanKebijakanIdHapusRkaklDelete,
 } from "../../api/endpoints/kebijakan-strategis/kebijakan-strategis";
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export function KebijakanView() {
   const navigate = useNavigate();
@@ -129,6 +138,10 @@ export function KebijakanView() {
           jenis_dasar_hukum: k.jenis_dasar_hukum,
           nomor_dasar_hukum: k.nomor_dasar_hukum,
           tanggal_penetapan: k.tanggal_penetapan,
+          deskripsi: k.deskripsi ?? matched?.deskripsi ?? "",
+          tahun_pengukuran: k.tahun_pengukuran ?? matched?.tahun_pengukuran ?? 2025,
+          berkas_dasar_hukum_nama: k.berkas_dasar_hukum_nama ?? matched?.berkas_dasar_hukum_nama ?? undefined,
+          berkas_rkakl_nama: k.berkas_rkakl_nama ?? matched?.berkas_rkakl_nama ?? undefined,
           dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
           rekomendasi: k.rekomendasi || "",
           satuan_kerja: k.satuan_kerja || undefined,
@@ -208,6 +221,10 @@ export function KebijakanView() {
           jenis_dasar_hukum: k.jenis_dasar_hukum,
           nomor_dasar_hukum: k.nomor_dasar_hukum,
           tanggal_penetapan: k.tanggal_penetapan,
+          deskripsi: k.deskripsi ?? matched?.deskripsi ?? "",
+          tahun_pengukuran: k.tahun_pengukuran ?? matched?.tahun_pengukuran ?? 2025,
+          berkas_dasar_hukum_nama: k.berkas_dasar_hukum_nama ?? matched?.berkas_dasar_hukum_nama ?? undefined,
+          berkas_rkakl_nama: k.berkas_rkakl_nama ?? matched?.berkas_rkakl_nama ?? undefined,
           dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
           rekomendasi: k.rekomendasi || "",
           satuan_kerja: k.satuan_kerja || undefined,
@@ -234,11 +251,17 @@ export function KebijakanView() {
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [formNama, setFormNama] = useState("");
+  const [formDeskripsi, setFormDeskripsi] = useState("");
+  const [formTahunPengukuran, setFormTahunPengukuran] = useState<number>(2025);
   const [formJenis, setFormJenis] = useState("Permen");
   const [formJenisKustom, setFormJenisKustom] = useState("");
   const [formNomor, setFormNomor] = useState("");
   const [formTanggal, setFormTanggal] = useState("2024-06-01");
   const [formRekomendasi, setFormRekomendasi] = useState("");
+  const [fileDasarHukum, setFileDasarHukum] = useState<File | null>(null);
+  const [fileRkakl, setFileRkakl] = useState<File | null>(null);
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+  const [uploadingRowId, setUploadingRowId] = useState<string | null>(null);
   const [customFormSatker, setFormSatker] = useState("");
   const formSatker = customFormSatker || currentUser.satuan_kerja || DAFTAR_SATKER_KOMDIGI[0];
 
@@ -272,6 +295,77 @@ export function KebijakanView() {
 
 
 
+  const handleUploadDokumenKebijakan = async (
+    kebijakanId: string,
+    tipe: "dasar_hukum" | "rkakl",
+    file: File
+  ) => {
+    setUploadingRowId(`${kebijakanId}_${tipe}`);
+    try {
+      if (tipe === "dasar_hukum") {
+        await unggahDasarHukumApiV1KebijakanKebijakanIdUnggahDasarHukumPost(kebijakanId, {
+          file,
+        });
+      } else {
+        await unggahRkaklApiV1KebijakanKebijakanIdUnggahRkaklPost(kebijakanId, {
+          file,
+        });
+      }
+      await refetchKebijakan();
+      queryClient.invalidateQueries();
+      setToast({
+        show: true,
+        type: "success",
+        title: "Berkas Berhasil Diunggah",
+        message: `Dokumen ${tipe === "dasar_hukum" ? "Dasar Hukum" : "RKAKL"} (${file.name}) telah berhasil disimpan.`,
+      });
+    } catch (err: any) {
+      setToast({
+        show: true,
+        type: "error",
+        title: "Gagal Mengunggah Berkas",
+        message:
+          err?.response?.data?.detail ||
+          "Terjadi kesalahan saat mengunggah dokumen kebijakan.",
+      });
+    } finally {
+      setUploadingRowId(null);
+    }
+  };
+
+  const handleHapusDokumenKebijakan = async (
+    kebijakanId: string,
+    tipe: "dasar_hukum" | "rkakl"
+  ) => {
+    setUploadingRowId(`${kebijakanId}_${tipe}`);
+    try {
+      if (tipe === "dasar_hukum") {
+        await hapusDasarHukumApiV1KebijakanKebijakanIdHapusDasarHukumDelete(kebijakanId);
+      } else {
+        await hapusRkaklApiV1KebijakanKebijakanIdHapusRkaklDelete(kebijakanId);
+      }
+      await refetchKebijakan();
+      queryClient.invalidateQueries();
+      setToast({
+        show: true,
+        type: "info",
+        title: "Berkas Telah Dihapus",
+        message: `Dokumen ${tipe === "dasar_hukum" ? "Dasar Hukum" : "RKAKL"} telah dihapus.`,
+      });
+    } catch (err: any) {
+      setToast({
+        show: true,
+        type: "error",
+        title: "Gagal Menghapus Berkas",
+        message:
+          err?.response?.data?.detail ||
+          "Terjadi kesalahan saat menghapus dokumen kebijakan.",
+      });
+    } finally {
+      setUploadingRowId(null);
+    }
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formNama.trim()) return;
@@ -281,6 +375,7 @@ export function KebijakanView() {
         ? formJenisKustom.trim() || "Lainnya"
         : formJenis;
 
+    setIsSubmittingAdd(true);
     // Simpan ke PostgreSQL Backend via TanStack Query Mutation jika periode aktif tersedia
     if (activePeriodeId) {
       try {
@@ -296,32 +391,59 @@ export function KebijakanView() {
             jenis_dasar_hukum: finalJenis,
             nomor_dasar_hukum: formNomor.trim() || "-",
             tanggal_penetapan: formTanggal,
+            deskripsi: formDeskripsi.trim() || undefined,
+            tahun_pengukuran: formTahunPengukuran || 2025,
             rekomendasi: formRekomendasi.trim() || undefined,
             satuan_kerja: finalSatker,
           },
         });
 
+        let latestData = res.data;
+        if (fileDasarHukum) {
+          const upDh = await unggahDasarHukumApiV1KebijakanKebijakanIdUnggahDasarHukumPost(
+            res.data.id,
+            { file: fileDasarHukum }
+          );
+          latestData = upDh.data;
+        }
+        if (fileRkakl) {
+          const upRk = await unggahRkaklApiV1KebijakanKebijakanIdUnggahRkaklPost(
+            res.data.id,
+            { file: fileRkakl }
+          );
+          latestData = upRk.data;
+        }
+
         await refetchKebijakan();
         queryClient.invalidateQueries();
 
         const createdItem: KebijakanItem = {
-          id: res.data.id,
-          nama: res.data.nama,
-          jenis_dasar_hukum: res.data.jenis_dasar_hukum,
-          nomor_dasar_hukum: res.data.nomor_dasar_hukum,
-          tanggal_penetapan: res.data.tanggal_penetapan,
-          dipilih_untuk_si_ikk: res.data.dipilih_untuk_si_ikk,
-          rekomendasi: res.data.rekomendasi || "",
-          satuan_kerja: res.data.satuan_kerja || undefined,
+          id: latestData.id,
+          nama: latestData.nama,
+          jenis_dasar_hukum: latestData.jenis_dasar_hukum,
+          nomor_dasar_hukum: latestData.nomor_dasar_hukum,
+          tanggal_penetapan: latestData.tanggal_penetapan,
+          deskripsi: latestData.deskripsi || formDeskripsi.trim(),
+          tahun_pengukuran: latestData.tahun_pengukuran || formTahunPengukuran || 2025,
+          berkas_dasar_hukum_nama: latestData.berkas_dasar_hukum_nama || fileDasarHukum?.name,
+          berkas_rkakl_nama: latestData.berkas_rkakl_nama || fileRkakl?.name,
+          dipilih_untuk_si_ikk: latestData.dipilih_untuk_si_ikk,
+          rekomendasi: latestData.rekomendasi || "",
+          satuan_kerja: latestData.satuan_kerja || undefined,
         };
 
         setNewlyAddedPolicy(createdItem);
         setShowAddForm(false);
         setFormNama("");
+        setFormDeskripsi("");
+        setFormTahunPengukuran(2025);
         setFormNomor("");
         setFormRekomendasi("");
         setFormJenis("Permen");
         setFormJenisKustom("");
+        setFileDasarHukum(null);
+        setFileRkakl(null);
+        setIsSubmittingAdd(false);
 
         setToast({
           show: true,
@@ -344,6 +466,10 @@ export function KebijakanView() {
       jenis_dasar_hukum: finalJenis,
       nomor_dasar_hukum: formNomor.trim() || "-",
       tanggal_penetapan: formTanggal,
+      deskripsi: formDeskripsi.trim(),
+      tahun_pengukuran: formTahunPengukuran || 2025,
+      berkas_dasar_hukum_nama: fileDasarHukum?.name,
+      berkas_rkakl_nama: fileRkakl?.name,
       dipilih_untuk_si_ikk: false,
       rekomendasi: formRekomendasi.trim(),
       skor_total: undefined,
@@ -355,10 +481,15 @@ export function KebijakanView() {
     setNewlyAddedPolicy(newItem);
     setShowAddForm(false);
     setFormNama("");
+    setFormDeskripsi("");
+    setFormTahunPengukuran(2025);
     setFormNomor("");
     setFormRekomendasi("");
     setFormJenis("Permen");
     setFormJenisKustom("");
+    setFileDasarHukum(null);
+    setFileRkakl(null);
+    setIsSubmittingAdd(false);
 
     setToast({
       show: true,
@@ -645,13 +776,30 @@ export function KebijakanView() {
                 required
                 value={formNama}
                 onChange={(e) => setFormNama(e.target.value)}
-                placeholder="Contoh: Digitalent, PP Tunas, Permenkominfo Standar Layanan Publik"
+                placeholder="Contoh: Digitalent, PP Tunas, Penyuluh Informasi Publik"
                 className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
               />
               <p className="mt-1 text-[11px] text-slate-500">
                 (isi nama program, kebijakan contohnya : Digitalent, PP Tunas dll)
               </p>
             </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Deskripsi Kebijakan
+              </label>
+              <textarea
+                rows={2}
+                value={formDeskripsi}
+                onChange={(e) => setFormDeskripsi(e.target.value)}
+                placeholder="Uraikan secara singkat latar belakang, tujuan, dan sasaran kebijakan/program..."
+                className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                (Gambaran ringkas ruang lingkup, sasaran penerima manfaat, dan bentuk implementasi kebijakan)
+              </p>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Jenis Dasar Hukum
@@ -721,7 +869,57 @@ export function KebijakanView() {
                 (tanggal peluncuran program atau penetapan peraturan)
               </p>
             </div>
+
             <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Tahun Pengukuran Kebijakan
+              </label>
+              <input
+                type="number"
+                required
+                min={2015}
+                max={2035}
+                value={formTahunPengukuran}
+                onChange={(e) => setFormTahunPengukuran(Number(e.target.value) || 2025)}
+                className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                (misal untuk program Penyuluh Informasi Publik dilakukan pengukuran kebijakan untuk pengimplementasian program di tahun 2025)
+              </p>
+            </div>
+
+            {/* Bagian Unggah Dasar Hukum & RKAKL */}
+            <div className="rounded-xl border border-[#D5DEEF] bg-[#F0F3FA]/50 p-3.5">
+              <label className="block text-xs font-bold text-[#1E304B] mb-1">
+                Unggah Dokumen Dasar Hukum
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.docx,.doc,.xlsx,.xls"
+                onChange={(e) => setFileDasarHukum(e.target.files?.[0] || null)}
+                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#395886] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-[#2F4A72] cursor-pointer"
+              />
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                Format PDF/Word (Regulasi, SK, Pedoman, atau Dokumen Penetapan Program).
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-[#D5DEEF] bg-[#F0F3FA]/50 p-3.5">
+              <label className="block text-xs font-bold text-[#1E304B] mb-1">
+                Unggah Dokumen RKAKL
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.docx,.doc,.xlsx,.xls"
+                onChange={(e) => setFileRkakl(e.target.files?.[0] || null)}
+                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#395886] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-[#2F4A72] cursor-pointer"
+              />
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                Format PDF/Excel/Word (Dokumen RKA-K/L pendukung pelaksanaan kebijakan/program).
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Rekomendasi / Catatan Kebijakan
               </label>
@@ -777,9 +975,11 @@ export function KebijakanView() {
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 shadow-xs transition-colors"
+              disabled={isSubmittingAdd}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
             >
-              Simpan Kebijakan
+              {isSubmittingAdd && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>{isSubmittingAdd ? "Menyimpan..." : "Simpan Kebijakan"}</span>
             </button>
           </div>
         </form>
@@ -933,6 +1133,11 @@ export function KebijakanView() {
                           </span>
                         )}
                       </div>
+                      {item.deskripsi && (
+                        <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-xl">
+                          {item.deskripsi}
+                        </p>
+                      )}
                       <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                         <span className="rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 font-bold text-[#395886] text-[11px] inline-flex items-center gap-1 shadow-2xs">
                           <Building className="h-3 w-3 text-[#628ECB]" />
@@ -942,11 +1147,106 @@ export function KebijakanView() {
                           {item.jenis_dasar_hukum}
                         </span>
                         <span className="font-mono text-slate-600">{item.nomor_dasar_hukum}</span>
+                        <span className="rounded-md bg-indigo-50 border border-indigo-200 px-2 py-0.5 font-semibold text-indigo-800 text-[11px] inline-flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-indigo-600" />
+                          <span>Tahun Pengukuran: {item.tahun_pengukuran || 2025}</span>
+                        </span>
                         {item.dipilih_untuk_si_ikk && (
                           <span className="rounded-md bg-emerald-50 border border-emerald-300 px-2 py-0.5 font-bold text-emerald-800 text-[11px] inline-flex items-center gap-1 shadow-2xs">
                             <Sparkles className="h-3 w-3 text-emerald-600" />
                             <span>Terpilih SI IKK</span>
                           </span>
+                        )}
+                      </div>
+
+                      {/* Dokumen Dasar Hukum & RKAKL */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {item.berkas_dasar_hukum_nama ? (
+                          <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-[11px] text-emerald-900">
+                            <FileText className="h-3 w-3 text-emerald-600 flex-shrink-0" />
+                            <span className="font-semibold">Dasar Hukum:</span>
+                            <a
+                              href={`${API_BASE}/api/v1/kebijakan/${item.id}/unduh-dasar-hukum`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="max-w-[160px] truncate underline hover:text-emerald-700 font-medium inline-flex items-center gap-1"
+                              title={`Lihat/Unduh ${item.berkas_dasar_hukum_nama}`}
+                            >
+                              <span>{item.berkas_dasar_hukum_nama}</span>
+                              <Eye className="h-3 w-3 flex-shrink-0" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleHapusDokumenKebijakan(item.id, "dasar_hukum")}
+                              className="text-rose-500 hover:text-rose-700 ml-0.5 cursor-pointer"
+                              title="Hapus berkas Dasar Hukum"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="inline-flex items-center gap-1 rounded-lg border border-dashed border-[#8AAEE0] bg-[#F0F3FA]/60 hover:bg-[#F0F3FA] px-2.5 py-1 text-[11px] font-semibold text-[#395886] cursor-pointer transition-colors">
+                            {uploadingRowId === `${item.id}_dasar_hukum` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Upload className="h-3 w-3" />
+                            )}
+                            <span>Unggah Dasar Hukum</span>
+                            <input
+                              type="file"
+                              accept=".pdf,.docx,.doc,.xlsx,.xls"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) handleUploadDokumenKebijakan(item.id, "dasar_hukum", f);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
+
+                        {item.berkas_rkakl_nama ? (
+                          <div className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-[11px] text-blue-900">
+                            <FileText className="h-3 w-3 text-blue-600 flex-shrink-0" />
+                            <span className="font-semibold">RKAKL:</span>
+                            <a
+                              href={`${API_BASE}/api/v1/kebijakan/${item.id}/unduh-rkakl`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="max-w-[160px] truncate underline hover:text-blue-700 font-medium inline-flex items-center gap-1"
+                              title={`Lihat/Unduh ${item.berkas_rkakl_nama}`}
+                            >
+                              <span>{item.berkas_rkakl_nama}</span>
+                              <Eye className="h-3 w-3 flex-shrink-0" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleHapusDokumenKebijakan(item.id, "rkakl")}
+                              className="text-rose-500 hover:text-rose-700 ml-0.5 cursor-pointer"
+                              title="Hapus berkas RKAKL"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="inline-flex items-center gap-1 rounded-lg border border-dashed border-[#8AAEE0] bg-[#F0F3FA]/60 hover:bg-[#F0F3FA] px-2.5 py-1 text-[11px] font-semibold text-[#395886] cursor-pointer transition-colors">
+                            {uploadingRowId === `${item.id}_rkakl` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Upload className="h-3 w-3" />
+                            )}
+                            <span>Unggah RKAKL</span>
+                            <input
+                              type="file"
+                              accept=".pdf,.docx,.doc,.xlsx,.xls"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) handleUploadDokumenKebijakan(item.id, "rkakl", f);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
                         )}
                       </div>
                     </div>

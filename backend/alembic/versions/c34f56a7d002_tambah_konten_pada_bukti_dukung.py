@@ -9,6 +9,7 @@ Create Date: 2026-11-02 11:50:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -26,4 +27,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     op.drop_column("bukti_dukung", "konten")
-

@@ -4,6 +4,10 @@ export interface KebijakanItem {
   jenis_dasar_hukum: string;
   nomor_dasar_hukum: string;
   tanggal_penetapan: string;
+  deskripsi?: string;
+  tahun_pengukuran?: number;
+  berkas_dasar_hukum_nama?: string;
+  berkas_rkakl_nama?: string;
   dipilih_untuk_si_ikk: boolean;
   rekomendasi: string;
   satuan_kerja?: string;

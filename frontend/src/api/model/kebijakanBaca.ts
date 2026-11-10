@@ -18,6 +18,10 @@ export interface KebijakanBaca {
   jenis_dasar_hukum: string;
   nomor_dasar_hukum: string;
   tanggal_penetapan: string;
+  deskripsi?: string | null;
+  tahun_pengukuran?: number | null;
+  berkas_dasar_hukum_nama?: string | null;
+  berkas_rkakl_nama?: string | null;
   satuan_kerja?: KebijakanBacaSatuanKerja;
   pembuat_id?: KebijakanBacaPembuatId;
   dipilih_untuk_si_ikk: boolean;

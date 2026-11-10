@@ -1,8 +1,10 @@
+import os
 import uuid
 from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,6 +22,7 @@ from app.models.riwayat import Riwayat
 from app.schemas.asesmen import (
     AsesmenAksiPayload,
     AsesmenBaca,
+    AsesmenCatatanJfakPayload,
     AsesmenJfakUpdate,
     HasilSkorBaca,
     NilaiDimensiBaca,
@@ -535,7 +538,34 @@ async def perbarui_jfak_asesmen(
         asesmen.penjelasan_jfak = payload.penjelasan_jfak
     if payload.surat_penunjukan_jfak is not None:
         asesmen.surat_penunjukan_jfak = payload.surat_penunjukan_jfak
+    if payload.catatan_koordinator_jfak is not None:
+        asesmen.catatan_koordinator_jfak = payload.catatan_koordinator_jfak
 
+    await db.commit()
+    return await ambil_asesmen_lengkap(asesmen.id, db, current_user=current_user)
+
+
+@router.put(
+    "/{asesmen_id}/catatan-jfak",
+    response_model=AsesmenBaca,
+    dependencies=[Depends(require_roles(["KOORDINATOR", "ADMIN"]))],
+)
+async def simpan_catatan_koordinator_jfak(
+    asesmen_id: uuid.UUID,
+    payload: AsesmenCatatanJfakPayload,
+    current_user: Pengguna = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AsesmenBaca:
+    """Menyimpan catatan verifikasi Koordinator khusus untuk indikator Keterlibatan JFAK."""
+    stmt = select(Asesmen).where(Asesmen.id == asesmen_id)
+    res = await db.execute(stmt)
+    asesmen = res.scalar_one_or_none()
+    if not asesmen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
+        )
+
+    asesmen.catatan_koordinator_jfak = payload.catatan_koordinator_jfak
     await db.commit()
     return await ambil_asesmen_lengkap(asesmen.id, db, current_user=current_user)
 
@@ -547,7 +577,7 @@ async def unggah_bukti_jfak(
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AsesmenBaca:
-    """Mengunggah berkas Surat Penunjukan Tim JFAK (PDF/Word) langsung pada asesmen."""
+    """Mengunggah berkas SK / Surat Penunjukan Tim JFAK (PDF/Word) langsung pada asesmen."""
     stmt = select(Asesmen).where(Asesmen.id == asesmen_id).options(selectinload(Asesmen.kebijakan))
     res = await db.execute(stmt)
     asesmen = res.scalar_one_or_none()
@@ -560,7 +590,7 @@ async def unggah_bukti_jfak(
         current_user.peran == "ANALIS"
         and asesmen.kebijakan
         and asesmen.kebijakan.satuan_kerja
-        and asesmen.kebijakan.satuan_kerja != current_user.satuan_kerja
+        and not satker_cocok(asesmen.kebijakan.satuan_kerja, current_user.satuan_kerja)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -592,9 +622,57 @@ async def unggah_bukti_jfak(
     target_path = upload_dir / safe_name
     target_path.write_bytes(contents)
 
-    asesmen.surat_penunjukan_jfak = safe_name
+    asesmen.surat_penunjukan_jfak = str(target_path)
+    asesmen.sk_jfak_nama = file.filename or safe_name
+    asesmen.sk_jfak_mime = file.content_type or "application/pdf"
+    asesmen.sk_jfak_ukuran = len(contents)
+    asesmen.sk_jfak_konten = contents
     await db.commit()
     return await ambil_asesmen_lengkap(asesmen.id, db, current_user=current_user)
+
+
+@router.get("/{asesmen_id}/unduh-bukti-jfak")
+async def unduh_bukti_jfak(
+    asesmen_id: uuid.UUID,
+    current_user: Pengguna = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Mengunduh atau menampilkan berkas SK JFAK yang diunggah pada asesmen."""
+    stmt = select(Asesmen).where(Asesmen.id == asesmen_id).options(selectinload(Asesmen.kebijakan))
+    res = await db.execute(stmt)
+    asesmen = res.scalar_one_or_none()
+    if not asesmen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
+        )
+
+    nama_file = asesmen.sk_jfak_nama or asesmen.surat_penunjukan_jfak or "SK_JFAK.pdf"
+    mime = asesmen.sk_jfak_mime or "application/pdf"
+    disp_type = "inline" if mime == "application/pdf" else "attachment"
+
+    if asesmen.surat_penunjukan_jfak:
+        disk_path = asesmen.surat_penunjukan_jfak
+        if not os.path.isabs(disk_path) and not os.path.exists(disk_path):
+            disk_path = str(Path(settings.UPLOAD_DIR) / disk_path)
+        if os.path.exists(disk_path):
+            return FileResponse(
+                path=disk_path,
+                filename=nama_file,
+                media_type=mime,
+                content_disposition_type=disp_type,
+            )
+
+    if asesmen.sk_jfak_konten:
+        return Response(
+            content=asesmen.sk_jfak_konten,
+            media_type=mime,
+            headers={"Content-Disposition": f'{disp_type}; filename="{nama_file}"'},
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Berkas SK JFAK belum diunggah atau tidak ditemukan.",
+    )
 
 
 @router.delete("/{asesmen_id}/hapus-bukti-jfak", response_model=AsesmenBaca)
@@ -603,7 +681,7 @@ async def hapus_bukti_jfak(
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AsesmenBaca:
-    """Menghapus berkas Surat Penunjukan Tim JFAK pada asesmen."""
+    """Menghapus berkas SK / Surat Penunjukan Tim JFAK pada asesmen."""
     stmt = select(Asesmen).where(Asesmen.id == asesmen_id).options(selectinload(Asesmen.kebijakan))
     res = await db.execute(stmt)
     asesmen = res.scalar_one_or_none()
@@ -616,13 +694,23 @@ async def hapus_bukti_jfak(
         current_user.peran == "ANALIS"
         and asesmen.kebijakan
         and asesmen.kebijakan.satuan_kerja
-        and asesmen.kebijakan.satuan_kerja != current_user.satuan_kerja
+        and not satker_cocok(asesmen.kebijakan.satuan_kerja, current_user.satuan_kerja)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Anda tidak memiliki hak akses mengubah asesmen dari satuan kerja lain.",
         )
 
+    if asesmen.surat_penunjukan_jfak and os.path.exists(asesmen.surat_penunjukan_jfak):
+        try:
+            os.remove(asesmen.surat_penunjukan_jfak)
+        except OSError:
+            pass
+
     asesmen.surat_penunjukan_jfak = None
+    asesmen.sk_jfak_nama = None
+    asesmen.sk_jfak_mime = None
+    asesmen.sk_jfak_ukuran = None
+    asesmen.sk_jfak_konten = None
     await db.commit()
     return await ambil_asesmen_lengkap(asesmen.id, db, current_user=current_user)

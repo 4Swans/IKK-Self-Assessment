@@ -67,6 +67,33 @@ async def _simpan_sidik_jari(sidik_jari: str) -> None:
         )
 
 
+_ALTER_SCHEMA_STATEMENTS = [
+    "ALTER TABLE pengguna ADD COLUMN IF NOT EXISTS catatan_penolakan TEXT;",
+    "ALTER TABLE bukti_dukung ADD COLUMN IF NOT EXISTS konten BYTEA;",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS deskripsi TEXT;",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS tahun_pengukuran INTEGER DEFAULT 2025;",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_dasar_hukum_nama VARCHAR(500);",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_dasar_hukum_path VARCHAR(1000);",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_dasar_hukum_mime VARCHAR(100);",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_dasar_hukum_konten BYTEA;",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_rkakl_nama VARCHAR(500);",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_rkakl_path VARCHAR(1000);",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_rkakl_mime VARCHAR(100);",
+    "ALTER TABLE kebijakan ADD COLUMN IF NOT EXISTS berkas_rkakl_konten BYTEA;",
+    "ALTER TABLE asesmen ADD COLUMN IF NOT EXISTS sk_jfak_nama VARCHAR(500);",
+    "ALTER TABLE asesmen ADD COLUMN IF NOT EXISTS sk_jfak_mime VARCHAR(100);",
+    "ALTER TABLE asesmen ADD COLUMN IF NOT EXISTS sk_jfak_ukuran INTEGER;",
+    "ALTER TABLE asesmen ADD COLUMN IF NOT EXISTS sk_jfak_konten BYTEA;",
+    "ALTER TABLE asesmen ADD COLUMN IF NOT EXISTS catatan_koordinator_jfak TEXT;",
+    "ALTER TABLE jawaban ADD COLUMN IF NOT EXISTS catatan_koordinator TEXT;",
+]
+
+
+async def _sinkronkan_kolom_tambahan(conn: AsyncConnection) -> None:
+    for stmt_sql in _ALTER_SCHEMA_STATEMENTS:
+        await conn.execute(text(stmt_sql))
+
+
 async def ensure_vercel_db_initialized() -> None:
     """Inisialisasi skema tabel, instrumen 2026, dan akun awal otomatis saat berjalan di Vercel.
 
@@ -96,18 +123,7 @@ async def ensure_vercel_db_initialized() -> None:
                     await kunci_conn.commit()
                     async with engine.begin() as conn:
                         await conn.run_sync(Base.metadata.create_all)
-                        await conn.execute(
-                            text(
-                                "ALTER TABLE pengguna "
-                                "ADD COLUMN IF NOT EXISTS catatan_penolakan TEXT;"
-                            )
-                        )
-                        await conn.execute(
-                            text(
-                                "ALTER TABLE bukti_dukung "
-                                "ADD COLUMN IF NOT EXISTS konten BYTEA;"
-                            )
-                        )
+                        await _sinkronkan_kolom_tambahan(conn)
                     await muat_instrumen(2026)
                     await seed_production_initial_data()
                     await _simpan_sidik_jari(sidik_jari)
@@ -128,6 +144,12 @@ async def ensure_vercel_db_initialized() -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if os.getenv("VERCEL"):
         await ensure_vercel_db_initialized()
+    else:
+        try:
+            async with engine.begin() as conn:
+                await _sinkronkan_kolom_tambahan(conn)
+        except Exception:
+            pass
     yield
 
 

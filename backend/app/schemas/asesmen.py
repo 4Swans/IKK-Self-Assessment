@@ -35,6 +35,11 @@ class AsesmenJfakUpdate(BaseModel):
     melibatkan_jfak: bool
     penjelasan_jfak: str | None = None
     surat_penunjukan_jfak: str | None = None
+    catatan_koordinator_jfak: str | None = None
+
+
+class AsesmenCatatanJfakPayload(BaseModel):
+    catatan_koordinator_jfak: str | None = None
 
 
 class AsesmenBaca(BaseModel):
@@ -45,6 +50,9 @@ class AsesmenBaca(BaseModel):
     melibatkan_jfak: bool | None = True
     penjelasan_jfak: str | None = None
     surat_penunjukan_jfak: str | None = None
+    sk_jfak_nama: str | None = None
+    sk_jfak_ukuran: int | None = None
+    catatan_koordinator_jfak: str | None = None
     catatan_koordinator: str | None = None
     jawaban_list: list[JawabanBaca] = []
     skor_terkini: HasilSkorBaca | None = None

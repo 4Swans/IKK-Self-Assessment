@@ -14,4 +14,5 @@ export interface JawabanSimpan {
   penjelasan?: JawabanSimpanPenjelasan;
   tautan_bukti?: JawabanSimpanTautanBukti;
   akses_publik_dicek?: boolean;
+  catatan_koordinator?: string | null;
 }

@@ -23,6 +23,11 @@ class JawabanSimpan(BaseModel):
     penjelasan: str | None = None
     tautan_bukti: str | None = None
     akses_publik_dicek: bool = False
+    catatan_koordinator: str | None = None
+
+
+class CatatanKoordinatorSimpan(BaseModel):
+    catatan_koordinator: str | None = None
 
 
 class JawabanBaca(BaseModel):
@@ -33,6 +38,7 @@ class JawabanBaca(BaseModel):
     penjelasan: str | None
     tautan_bukti: str | None
     akses_publik_dicek: bool
+    catatan_koordinator: str | None = None
     bukti_dukung_list: list[BuktiDukungBaca] = []
 
     model_config = {"from_attributes": True}

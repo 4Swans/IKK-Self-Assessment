@@ -27,6 +27,8 @@ export interface KebijakanBuat {
    */
   nomor_dasar_hukum: string;
   tanggal_penetapan: string;
+  deskripsi?: string | null;
+  tahun_pengukuran?: number | null;
   rekomendasi?: KebijakanBuatRekomendasi;
   satuan_kerja?: KebijakanBuatSatuanKerja;
   analis_id?: KebijakanBuatAnalisId;

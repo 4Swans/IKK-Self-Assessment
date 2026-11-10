@@ -380,5 +380,19 @@ export function useUnduhBuktiApiV1JawabanBuktiBuktiIdUnduhGet<TData = Awaited<Re
   return query;
 }
 
+export const simpanCatatanKoordinatorApiV1JawabanAsesmenIdPertanyaanIdCatatanKoordinatorPut = (
+    asesmenId: string,
+    pertanyaanId: string,
+    data: { catatan_koordinator?: string | null },
+    options?: AxiosRequestConfig
+): Promise<AxiosResponse<JawabanBaca>> => {
+    return axios.default.put(
+      `/api/v1/jawaban/${asesmenId}/${pertanyaanId}/catatan-koordinator`,
+      data,
+      options
+    );
+};
+
+
 
 

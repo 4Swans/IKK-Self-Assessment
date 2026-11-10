@@ -724,4 +724,13 @@ export const useHapusBuktiJfakApiV1AsesmenAsesmenIdHapusBuktiJfakDelete = <TErro
 
       return useMutation(mutationOptions, queryClient);
     }
+
+export const simpanCatatanKoordinatorJfakApiV1AsesmenAsesmenIdCatatanJfakPut = (
+    asesmenId: string,
+    data: { catatan_koordinator_jfak?: string | null },
+    options?: AxiosRequestConfig
+): Promise<AxiosResponse<AsesmenBaca>> => {
+    return axios.default.put(`/api/v1/asesmen/${asesmenId}/catatan-jfak`, data, options);
+};
+
     

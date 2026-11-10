@@ -7,9 +7,11 @@ from pydantic import BaseModel, Field
 class KebijakanBuat(BaseModel):
     periode_id: uuid.UUID
     nama: str = Field(..., min_length=3, max_length=500)
+    deskripsi: str | None = None
     jenis_dasar_hukum: str = Field(..., min_length=2, max_length=100)
     nomor_dasar_hukum: str = Field(..., min_length=1, max_length=255)
     tanggal_penetapan: date
+    tahun_pengukuran: int | None = 2025
     rekomendasi: str | None = None
     satuan_kerja: str | None = None
     analis_id: uuid.UUID | None = None  # Penugasan analis langsung
@@ -17,9 +19,11 @@ class KebijakanBuat(BaseModel):
 
 class KebijakanUbah(BaseModel):
     nama: str | None = None
+    deskripsi: str | None = None
     jenis_dasar_hukum: str | None = None
     nomor_dasar_hukum: str | None = None
     tanggal_penetapan: date | None = None
+    tahun_pengukuran: int | None = None
     rekomendasi: str | None = None
     satuan_kerja: str | None = None
     dipilih_untuk_si_ikk: bool | None = None
@@ -29,9 +33,13 @@ class KebijakanBaca(BaseModel):
     id: uuid.UUID
     periode_id: uuid.UUID
     nama: str
+    deskripsi: str | None = None
     jenis_dasar_hukum: str
     nomor_dasar_hukum: str
     tanggal_penetapan: date
+    tahun_pengukuran: int | None = 2025
+    berkas_dasar_hukum_nama: str | None = None
+    berkas_rkakl_nama: str | None = None
     satuan_kerja: str | None = None
     pembuat_id: uuid.UUID | None = None
     dipilih_untuk_si_ikk: bool

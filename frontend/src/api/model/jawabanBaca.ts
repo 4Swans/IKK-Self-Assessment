@@ -18,5 +18,6 @@ export interface JawabanBaca {
   penjelasan: JawabanBacaPenjelasan;
   tautan_bukti: JawabanBacaTautanBukti;
   akses_publik_dicek: boolean;
+  catatan_koordinator?: string | null;
   bukti_dukung_list?: BuktiDukungBaca[];
 }

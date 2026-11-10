@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -22,9 +22,19 @@ class Kebijakan(Base):
         ForeignKey("periode.id", ondelete="CASCADE"), nullable=False, index=True
     )
     nama: Mapped[str] = mapped_column(String(500), nullable=False)
+    deskripsi: Mapped[str | None] = mapped_column(Text, nullable=True)
     jenis_dasar_hukum: Mapped[str] = mapped_column(String(100), nullable=False)
     nomor_dasar_hukum: Mapped[str] = mapped_column(String(255), nullable=False)
     tanggal_penetapan: Mapped[date] = mapped_column(Date, nullable=False)
+    tahun_pengukuran: Mapped[int | None] = mapped_column(Integer, default=2025, nullable=True)
+    berkas_dasar_hukum_nama: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    berkas_dasar_hukum_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    berkas_dasar_hukum_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    berkas_dasar_hukum_konten: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    berkas_rkakl_nama: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    berkas_rkakl_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    berkas_rkakl_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    berkas_rkakl_konten: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     dipilih_untuk_si_ikk: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rekomendasi: Mapped[str | None] = mapped_column(Text, nullable=True)
     satuan_kerja: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)

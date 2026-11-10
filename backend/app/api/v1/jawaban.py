@@ -13,12 +13,17 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_roles
 from app.models.asesmen import Asesmen, StatusAsesmen
 from app.models.bukti_dukung import BuktiDukung
 from app.models.jawaban import Jawaban
 from app.models.pengguna import Pengguna
-from app.schemas.jawaban import BuktiDukungBaca, JawabanBaca, JawabanSimpan
+from app.schemas.jawaban import (
+    BuktiDukungBaca,
+    CatatanKoordinatorSimpan,
+    JawabanBaca,
+    JawabanSimpan,
+)
 
 router = APIRouter(prefix="/jawaban", tags=["Jawaban & Bukti Dukung"])
 
@@ -92,11 +97,64 @@ async def simpan_jawaban(
             jawaban.tautan_bukti = payload.tautan_bukti
         if "akses_publik_dicek" in payload.model_fields_set:
             jawaban.akses_publik_dicek = payload.akses_publik_dicek
+        if "catatan_koordinator" in payload.model_fields_set:
+            jawaban.catatan_koordinator = payload.catatan_koordinator
 
     await db.commit()
 
     # Ambil ulang jawaban lengkap beserta relasi bukti_dukung_list
     # untuk menghindari MissingGreenlet di AsyncSession
+    stmt_reload = (
+        select(Jawaban)
+        .where(Jawaban.id == jawaban.id)
+        .options(selectinload(Jawaban.bukti_dukung_list))
+    )
+    res_reload = await db.execute(stmt_reload)
+    jawaban_lengkap = res_reload.scalar_one()
+    return JawabanBaca.model_validate(jawaban_lengkap)
+
+
+@router.put(
+    "/{asesmen_id}/{pertanyaan_id}/catatan-koordinator",
+    response_model=JawabanBaca,
+    dependencies=[Depends(require_roles(["KOORDINATOR", "ADMIN"]))],
+)
+async def simpan_catatan_koordinator(
+    asesmen_id: uuid.UUID,
+    pertanyaan_id: uuid.UUID,
+    payload: CatatanKoordinatorSimpan,
+    current_user: Pengguna = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> JawabanBaca:
+    """Menyimpan catatan verifikasi Koordinator per pertanyaan (indikator)."""
+    stmt_a = select(Asesmen).where(Asesmen.id == asesmen_id)
+    res_a = await db.execute(stmt_a)
+    asesmen = res_a.scalar_one_or_none()
+    if not asesmen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
+        )
+
+    stmt_j = (
+        select(Jawaban)
+        .where(Jawaban.asesmen_id == asesmen_id, Jawaban.pertanyaan_id == pertanyaan_id)
+        .options(selectinload(Jawaban.bukti_dukung_list))
+    )
+    res_j = await db.execute(stmt_j)
+    jawaban = res_j.scalars().first()
+
+    if not jawaban:
+        jawaban = Jawaban(
+            asesmen_id=asesmen_id,
+            pertanyaan_id=pertanyaan_id,
+            catatan_koordinator=payload.catatan_koordinator,
+        )
+        db.add(jawaban)
+    else:
+        jawaban.catatan_koordinator = payload.catatan_koordinator
+
+    await db.commit()
+
     stmt_reload = (
         select(Jawaban)
         .where(Jawaban.id == jawaban.id)

@@ -18,6 +18,8 @@ export interface KebijakanUbah {
   jenis_dasar_hukum?: KebijakanUbahJenisDasarHukum;
   nomor_dasar_hukum?: KebijakanUbahNomorDasarHukum;
   tanggal_penetapan?: KebijakanUbahTanggalPenetapan;
+  deskripsi?: string | null;
+  tahun_pengukuran?: number | null;
   rekomendasi?: KebijakanUbahRekomendasi;
   satuan_kerja?: KebijakanUbahSatuanKerja;
   dipilih_untuk_si_ikk?: KebijakanUbahDipilihUntukSiIkk;

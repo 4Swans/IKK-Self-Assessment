@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -36,6 +36,11 @@ class Asesmen(Base):
     melibatkan_jfak: Mapped[bool | None] = mapped_column(Boolean, default=True, nullable=True)
     penjelasan_jfak: Mapped[str | None] = mapped_column(Text, nullable=True)
     surat_penunjukan_jfak: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sk_jfak_nama: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    sk_jfak_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    sk_jfak_ukuran: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sk_jfak_konten: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    catatan_koordinator_jfak: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False

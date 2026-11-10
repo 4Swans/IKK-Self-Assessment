@@ -25,7 +25,6 @@ import {
   Sparkles,
   FileStack,
   Building,
-  Info,
 } from "lucide-react";
 import { RadarDimensiIKK } from "../../components/ui/RadarDimensiIKK";
 import { ToastNotification } from "../../components/ui/ToastNotification";
@@ -41,12 +40,16 @@ import {
   useBukaKembaliAsesmenApiV1AsesmenAsesmenIdBukaKembaliPost,
   useAmbilAsesmenPerKebijakanApiV1AsesmenKebijakanKebijakanIdGet,
   usePerbaruiJfakAsesmenApiV1AsesmenAsesmenIdJfakPut,
+  useUnggahBuktiJfakApiV1AsesmenAsesmenIdUnggahBuktiJfakPost,
+  useHapusBuktiJfakApiV1AsesmenAsesmenIdHapusBuktiJfakDelete,
+  simpanCatatanKoordinatorJfakApiV1AsesmenAsesmenIdCatatanJfakPut,
 } from "../../api/endpoints/asesmen/asesmen";
 import {
   useSimpanJawabanApiV1JawabanAsesmenIdPertanyaanIdPut,
   useUnggahBuktiDukungApiV1JawabanJawabanIdUnggahBuktiPost,
   useGabungPdfBuktiApiV1JawabanJawabanIdGabungPdfPost,
   useHapusBuktiApiV1JawabanBuktiBuktiIdDelete,
+  simpanCatatanKoordinatorApiV1JawabanAsesmenIdPertanyaanIdCatatanKoordinatorPut,
 } from "../../api/endpoints/jawaban-bukti-dukung/jawaban-bukti-dukung";
 import { useAmbilInstrumenAktifApiV1InstrumenAktifGet } from "../../api/endpoints/instrumen-ikk/instrumen-ikk";
 import { useDaftarKebijakanApiV1KebijakanGet } from "../../api/endpoints/kebijakan-strategis/kebijakan-strategis";
@@ -81,8 +84,8 @@ const INSTRUMEN_DATA: PertanyaanItem[] = [
     bobotRelatif: 100,
     bobotDimensi: "100%",
     bobotEfektif: "10,00%",
-    buktiDukungWajib: "Tidak memerlukan unggahan berkas bukti fisik",
-    keterangan: "Standar Baku & Petunjuk Resmi LAN RI:\n(1) Keterlibatan JFAK bernilai 10 poin penuh (10% dari total indeks kualitas kebijakan).\n(2) Instansi mengonfirmasi keterlibatan Tim Penilai Internal JFAK dalam penilaian mandiri kebijakan.\n(3) Jika melibatkan JFAK, skor profil bernilai 100 (kontribusi 10 poin penuh). Jika tidak melibatkan JFAK, skor bernilai 0.",
+    buktiDukungWajib: "Surat Keputusan (SK) / Surat Penunjukan Tim JFAK bagi JFAK yang terlibat",
+    keterangan: "Standar Baku & Petunjuk Resmi LAN RI:\n(1) Keterlibatan JFAK bernilai 10 poin penuh (10% dari total indeks kualitas kebijakan).\n(2) Satuan kerja wajib mengunggah Surat Keputusan (SK) / Surat Penunjukan JFAK bagi JFAK yang terlibat dalam penilaian mandiri kebijakan.\n(3) Jika melibatkan JFAK, skor profil bernilai 100 (kontribusi 10 poin penuh). Jika tidak melibatkan JFAK, skor bernilai 0.",
     opsi: [
       { huruf: "A", teks: "Tidak melibatkan Jabatan Fungsional Analis Kebijakan (JFAK)", skor: 0 },
       { huruf: "B", teks: "Ya, melibatkan Jabatan Fungsional Analis Kebijakan (JFAK)", skor: 100 },
@@ -299,6 +302,7 @@ interface AnswerState {
   penjelasan: string;
   tautan: string;
   berkas: BerkasItem[];
+  catatanKoordinator?: string;
 }
 
 export function AsesmenView() {
@@ -443,7 +447,6 @@ export function AsesmenView() {
   const [syncStatus, setSyncStatus] = useState<"tersimpan" | "menyimpan" | "draf">("tersimpan");
   const [isUploading, setIsUploading] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
-  const [showPetunjuk, setShowPetunjuk] = useState(false);
 
   // Modern Toast Notification State
   const [toast, setToast] = useState<{
@@ -545,6 +548,9 @@ export function AsesmenView() {
   const gabungMutation = useGabungPdfBuktiApiV1JawabanJawabanIdGabungPdfPost();
   const hapusBuktiMutation = useHapusBuktiApiV1JawabanBuktiBuktiIdDelete();
   const perbaruiJfakMutation = usePerbaruiJfakAsesmenApiV1AsesmenAsesmenIdJfakPut();
+  const unggahJfakMutation = useUnggahBuktiJfakApiV1AsesmenAsesmenIdUnggahBuktiJfakPost();
+  const hapusJfakMutation = useHapusBuktiJfakApiV1AsesmenAsesmenIdHapusBuktiJfakDelete();
+  const [isSavingCatatanIndikator, setIsSavingCatatanIndikator] = useState(false);
 
   const [policyAnswers, setPolicyAnswers] = useState<Record<string, Record<string, AnswerState>>>({});
 
@@ -564,12 +570,39 @@ export function AsesmenView() {
       jfakOpsi = "B"; // default melibatkan JFAK
     }
 
+    const jfakBerkas: BerkasItem[] =
+      currentAsesmen?.surat_penunjukan_jfak || currentAsesmen?.sk_jfak_nama
+        ? [
+            {
+              id: "jfak",
+              nama:
+                currentAsesmen?.sk_jfak_nama ||
+                currentAsesmen?.surat_penunjukan_jfak ||
+                "SK_JFAK.pdf",
+              ukuran: currentAsesmen?.sk_jfak_ukuran
+                ? `${(currentAsesmen.sk_jfak_ukuran / (1024 * 1024)).toFixed(1)} MB`
+                : "Dokumen SK JFAK",
+              tipe: (
+                currentAsesmen?.sk_jfak_nama ||
+                currentAsesmen?.surat_penunjukan_jfak ||
+                ".pdf"
+              )
+                .toLowerCase()
+                .endsWith(".pdf")
+                ? "pdf"
+                : "word",
+              ada_lapisan_teks: true,
+            },
+          ]
+        : [];
+
     fromBackend["PROFIL"] = {
       jawabanId: "jfak",
       opsiHuruf: jfakOpsi,
       penjelasan: currentAsesmen?.penjelasan_jfak || "",
       tautan: "",
-      berkas: [],
+      berkas: jfakBerkas,
+      catatanKoordinator: currentAsesmen?.catatan_koordinator_jfak || "",
     };
 
     if (currentAsesmen?.jawaban_list && petaReverse.pMap) {
@@ -590,13 +623,27 @@ export function AsesmenView() {
             penjelasan: j.penjelasan || "",
             tautan: j.tautan_bukti || "",
             berkas,
+            catatanKoordinator: j.catatan_koordinator || "",
           };
         }
       }
     }
 
     const localAnswers = policyAnswers[selectedKebijakan] || {};
-    return { ...fromBackend, ...localAnswers };
+    const merged: Record<string, AnswerState> = { ...fromBackend };
+    for (const [k, loc] of Object.entries(localAnswers)) {
+      const fb = fromBackend[k];
+      merged[k] = {
+        ...fb,
+        ...loc,
+        berkas: fb?.berkas !== undefined ? fb.berkas : (loc.berkas || []),
+        catatanKoordinator:
+          loc.catatanKoordinator !== undefined
+            ? loc.catatanKoordinator
+            : (fb?.catatanKoordinator || ""),
+      };
+    }
+    return merged;
   }, [currentAsesmen, periodeResp, petaReverse, policyAnswers, selectedKebijakan]);
 
   const setAnswers = (
@@ -1007,7 +1054,43 @@ export function AsesmenView() {
     setIsUploading(true);
     try {
       if (activeKode === "PROFIL") {
-        setIsUploading(false);
+        const file = files[0];
+        if (!file) {
+          setIsUploading(false);
+          return;
+        }
+        const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+        if (![".pdf", ".docx", ".doc"].includes(ext)) {
+          showToast(
+            "Format Berkas Tidak Didukung",
+            `Berkas "${file.name}" tidak didukung. Harap gunakan dokumen PDF atau Word (.pdf, .docx, .doc).`,
+            "warning"
+          );
+          setIsUploading(false);
+          return;
+        }
+        if (file.size > 25 * 1024 * 1024) {
+          showToast(
+            "Ukuran Melebihi Batas",
+            `Ukuran berkas "${file.name}" melebihi batas maksimum 25 MB.`,
+            "warning"
+          );
+          setIsUploading(false);
+          return;
+        }
+
+        await unggahJfakMutation.mutateAsync({
+          asesmenId: currentAsesmenId,
+          data: { file: file as any },
+        });
+        await refetchAsesmen();
+        queryClient.invalidateQueries({ queryKey: [`/api/v1/asesmen`] });
+        setSyncStatus("tersimpan");
+        showToast(
+          "Unggah SK JFAK Berhasil",
+          `Dokumen SK JFAK "${file.name}" berhasil diunggah.`,
+          "success"
+        );
         return;
       }
 
@@ -1147,6 +1230,23 @@ export function AsesmenView() {
     if (!item) return;
 
     if (activeKode === "PROFIL") {
+      if (!currentAsesmenId) return;
+      try {
+        await hapusJfakMutation.mutateAsync({ asesmenId: currentAsesmenId });
+        await refetchAsesmen();
+        queryClient.invalidateQueries({ queryKey: [`/api/v1/asesmen`] });
+        showToast(
+          "SK JFAK Dihapus",
+          `Dokumen SK JFAK "${item.nama}" telah dihapus.`,
+          "info"
+        );
+      } catch (err: any) {
+        showToast(
+          "Gagal Menghapus SK JFAK",
+          err?.response?.data?.detail || "Gagal menghapus berkas SK JFAK dari server.",
+          "error"
+        );
+      }
       return;
     }
 
@@ -1219,6 +1319,49 @@ export function AsesmenView() {
       setSyncStatus("tersimpan");
     } catch {
       setSyncStatus("draf");
+    }
+  };
+
+  // Handler Simpan Catatan Koordinator per Indikator / Pertanyaan
+  const handleSimpanCatatanIndikator = async (showNotification = false) => {
+    if (peran !== "KOORDINATOR" && peran !== "ADMIN") return;
+    if (!currentAsesmenId) return;
+
+    const isiCatatan = (currentAns.catatanKoordinator || "").trim() || null;
+    setIsSavingCatatanIndikator(true);
+    try {
+      if (activeKode === "PROFIL") {
+        await simpanCatatanKoordinatorJfakApiV1AsesmenAsesmenIdCatatanJfakPut(
+          currentAsesmenId,
+          { catatan_koordinator_jfak: isiCatatan }
+        );
+      } else {
+        const qMeta = petaPertanyaan[activeKode];
+        if (!qMeta?.id) return;
+        await simpanCatatanKoordinatorApiV1JawabanAsesmenIdPertanyaanIdCatatanKoordinatorPut(
+          currentAsesmenId,
+          qMeta.id,
+          { catatan_koordinator: isiCatatan }
+        );
+      }
+      await refetchAsesmen();
+      if (showNotification) {
+        showToast(
+          "Catatan Indikator Tersimpan",
+          `Catatan verifikasi Koordinator untuk indikator ${activeKode} telah berhasil disimpan.`,
+          "success"
+        );
+      }
+    } catch (err: any) {
+      if (showNotification) {
+        showToast(
+          "Gagal Menyimpan Catatan",
+          err?.response?.data?.detail || "Terjadi kesalahan saat menyimpan catatan koordinator.",
+          "error"
+        );
+      }
+    } finally {
+      setIsSavingCatatanIndikator(false);
     }
   };
 
@@ -1685,56 +1828,22 @@ export function AsesmenView() {
                 {currentQ.teks}
               </h2>
 
-              {/* Petunjuk Standar Baku (Di bawah pertanyaan, tanpa badge) */}
+              {/* Petunjuk Standar Baku & Kriteria Data Dukung (Langsung Ditampilkan Tanpa Klik) */}
               {currentQ.keterangan && (
-                <div className="mt-2.5">
-                  <div
-                    className="relative group inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#395886] transition-colors cursor-help select-none"
-                    onMouseEnter={() => setShowPetunjuk(true)}
-                    onMouseLeave={() => setShowPetunjuk(false)}
-                  >
+                <div className="mt-3 rounded-xl border border-[#B1C9EF] bg-[#F0F3FA]/80 p-3.5 text-xs text-[#1E304B]">
+                  <div className="flex items-center gap-1.5 font-bold text-[#395886] mb-1.5">
                     <HelpCircle className="h-4 w-4 text-[#395886] flex-shrink-0" />
-                    <button
-                      type="button"
-                      id="btn-petunjuk-standar-baku"
-                      data-testid="btn-petunjuk-standar-baku"
-                      onClick={() => setShowPetunjuk((prev) => !prev)}
-                      className="text-xs font-medium text-slate-600 hover:text-[#395886] underline decoration-dotted decoration-slate-400 underline-offset-4 hover:decoration-[#395886] transition-colors cursor-pointer text-left"
-                    >
-                      Petunjuk Standar Baku &amp; Keterangan Resmi LAN RI
-                    </button>
-
-                    {/* Popover Content on Hover & Click */}
-                    <div
-                      id="popover-petunjuk-standar-baku"
-                      onMouseEnter={() => setShowPetunjuk(true)}
-                      onMouseLeave={() => setShowPetunjuk(false)}
-                      className={`absolute left-0 top-full z-50 mt-2 w-[440px] max-w-[88vw] rounded-2xl border border-[#B1C9EF] bg-white p-4 text-xs text-[#1E304B] shadow-palette-lg backdrop-blur-md transition-all animate-in fade-in zoom-in-95 duration-150 text-left pointer-events-auto ${
-                        showPetunjuk ? "block" : "hidden group-hover:block"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between border-b border-[#D5DEEF]/70 pb-2 mb-2.5">
-                        <div className="flex items-center gap-1.5 font-bold text-[#395886]">
-                          <HelpCircle className="h-4 w-4 text-[#395886] flex-shrink-0" />
-                          <span>Petunjuk Standar Baku &amp; Keterangan Resmi LAN RI</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowPetunjuk(false);
-                          }}
-                          className="text-slate-400 hover:text-slate-600 rounded-md p-0.5 text-base leading-none font-bold cursor-pointer"
-                          title="Tutup"
-                        >
-                          &times;
-                        </button>
-                      </div>
-                      <pre className="whitespace-pre-wrap font-sans text-xs text-slate-700 leading-relaxed max-h-[300px] overflow-y-auto pr-1">
-                        {currentQ.keterangan}
-                      </pre>
-                    </div>
+                    <span>Petunjuk Standar Baku, Kriteria Relevan &amp; Kredibel (LAN RI)</span>
                   </div>
+                  <pre className="whitespace-pre-wrap font-sans text-xs text-slate-700 leading-relaxed">
+                    {currentQ.keterangan}
+                  </pre>
+                  {currentQ.buktiDukungWajib && (
+                    <div className="mt-2 pt-2 border-t border-[#D5DEEF] text-[11px] text-[#395886]">
+                      <span className="font-bold">Ketentuan Dokumen Bukti Dukung: </span>
+                      <span className="text-slate-700">{currentQ.buktiDukungWajib}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1799,101 +1908,138 @@ export function AsesmenView() {
               })}
             </div>
 
-            {/* Notifikasi Khusus Indikator PROFIL */}
-            {currentQ.kode === "PROFIL" && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <div className="font-semibold text-blue-950">
-                    Konfirmasi Keterlibatan JFAK (Profil Instansi - Bobot 10%)
-                  </div>
-                  <p className="text-blue-800 leading-relaxed">
-                    Pengukuran kualitas kebijakan pada profil ini cukup memilih opsi konfirmasi keterlibatan Tim JFAK (Ya / Tidak). Tidak diperlukan berkas bukti dukung fisik untuk diunggah.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Evidence: Drag and Drop PDF / Word + Link Attachment - KHUSUS INDIKATOR A1-D2 */}
-            {currentQ.kode !== "PROFIL" && (
-              <div className="border-t border-slate-200 pt-5 space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                    Bukti Dukung Kebijakan
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Ketentuan Dokumen: {currentQ.buktiDukungWajib}
-                  </p>
-                </div>
-
-                {/* Drag and Drop Zone with Integrated Link Attachment / Lock State */}
-                {canEdit ? (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 sm:p-5 text-center transition-all ${
-                      isDragging
-                        ? "border-blue-600 bg-blue-50/80"
-                        : "border-slate-300 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400"
-                    }`}
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700 mb-2">
-                      <Upload className="h-5 w-5" />
-                    </div>
-                    <div className="text-xs font-semibold text-slate-800">
-                      Tarik &amp; lepas berkas PDF atau Word (.pdf, .docx, .doc) di sini
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Hanya menerima berkas dokumen resmi PDF (.pdf) atau Word (.docx, .doc)
-                    </p>
-
-                    {/* Action Button: Pilih Berkas Dokumen */}
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5">
-                      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition-colors">
-                        <Upload className="h-3.5 w-3.5 text-slate-500" />
-                        <span>Pilih Dokumen PDF / Word</span>
-                        <input
-                          type="file"
-                          accept=".pdf,.docx,.doc"
-                          multiple
-                          onChange={handleFileInputChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-2">
-                      *Maksimal ukuran 25 MB per berkas (format PDF, Word, Excel, atau Teks).
-                    </p>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
-                    <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-600">
-                      <Lock className="h-4 w-4 text-slate-400" />
-                      <span>
-                        Unggahan berkas bukti dikunci (Status: {statusAsesmen}). Pengisian bukti dilakukan oleh akun <strong>Analis Satker</strong> pada status DRAF / PERLU PERBAIKAN. Koordinator meninjau bukti dalam mode baca.
-                      </span>
-                    </div>
-                  </div>
+            {/* Uraian & Catatan Klarifikasi (Ditempatkan tepat di bawah Pilihan Jawaban, sebelum Bukti Dukung) */}
+            <div className="border-t border-slate-200 pt-5 space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#395886]">
+                  {currentQ.kode === "PROFIL"
+                    ? "Uraian & Catatan Klarifikasi Keterlibatan JFAK"
+                    : "Uraian & Catatan Klarifikasi"}
+                </label>
+                {!canEdit && (
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    Mode Hanya-Baca
+                  </span>
                 )}
+              </div>
+              <textarea
+                rows={3}
+                readOnly={!canEdit}
+                value={currentAns.penjelasan}
+                onBlur={handleBlurPenjelasan}
+                onChange={(e) => {
+                  if (canEdit) {
+                    setAnswers((prev) => ({
+                      ...prev,
+                      [activeKode]: { ...currentAns, penjelasan: e.target.value },
+                    }));
+                  }
+                }}
+                placeholder={
+                  canEdit
+                    ? currentQ.kode === "PROFIL"
+                      ? "Tuliskan nama JFAK yang terlibat, nomor SK Penunjukan, dan peran keterlibatannya..."
+                      : "Tuliskan uraian penjelasan ringkas mengenai substansi bukti dukung dan pemenuhan kriteria jawaban..."
+                    : "Tidak ada uraian tambahan."
+                }
+                className={`w-full rounded-xl border p-3 text-xs leading-relaxed ${
+                  !canEdit
+                    ? "border-slate-200 bg-slate-50/70 text-slate-700 cursor-not-allowed"
+                    : "border-slate-300 text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                }`}
+              />
+            </div>
 
-                {/* Uploaded Files Holding List for Review & Merging */}
-                {currentAns.berkas.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-semibold text-slate-700">
-                        Berkas Bukti Terlampir ({currentAns.berkas.length})
-                      </div>
-                      {isUploading && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          Mengunggah berkas...
-                        </span>
-                      )}
+            {/* Bukti Dukung Kebijakan / Unggah SK JFAK (Ditempatkan setelah Uraian & Catatan) */}
+            <div className="border-t border-slate-200 pt-5 space-y-4">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  {currentQ.kode === "PROFIL"
+                    ? "Unggah SK JFAK (Bagi JFAK yang Terlibat)"
+                    : "Bukti Dukung Kebijakan"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Ketentuan Dokumen: {currentQ.buktiDukungWajib}
+                </p>
+              </div>
+
+              {canEdit ? (
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 sm:p-5 text-center transition-all ${
+                    isDragging
+                      ? "border-blue-600 bg-blue-50/80"
+                      : "border-slate-300 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400"
+                  }`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700 mb-2">
+                    <Upload className="h-5 w-5" />
+                  </div>
+                  <div className="text-xs font-semibold text-slate-800">
+                    {currentQ.kode === "PROFIL"
+                      ? "Tarik & lepas dokumen SK JFAK / Surat Penunjukan (.pdf, .docx, .doc) di sini"
+                      : "Tarik & lepas berkas PDF atau Word (.pdf, .docx, .doc) di sini"}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Hanya menerima berkas dokumen resmi PDF (.pdf) atau Word (.docx, .doc)
+                  </p>
+
+                  {/* Action Button: Pilih Berkas Dokumen */}
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition-colors">
+                      <Upload className="h-3.5 w-3.5 text-slate-500" />
+                      <span>
+                        {currentQ.kode === "PROFIL"
+                          ? "Pilih Dokumen SK JFAK (PDF / Word)"
+                          : "Pilih Dokumen PDF / Word"}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.doc"
+                        multiple={currentQ.kode !== "PROFIL"}
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2">
+                    *Maksimal ukuran 25 MB per berkas (format PDF atau Word).
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-600">
+                    <Lock className="h-4 w-4 text-slate-400" />
+                    <span>
+                      Unggahan berkas bukti dikunci (Status: {statusAsesmen}). Pengisian bukti dilakukan oleh akun <strong>Analis Satker</strong> pada status DRAF / PERLU PERBAIKAN. Koordinator meninjau bukti dalam mode baca.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Uploaded Files Holding List for Review & Merging */}
+              {currentAns.berkas.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-slate-700">
+                      {currentQ.kode === "PROFIL"
+                        ? "Dokumen SK JFAK Terlampir"
+                        : `Berkas Bukti Terlampir (${currentAns.berkas.length})`}
                     </div>
+                    {isUploading && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Mengunggah berkas...
+                      </span>
+                    )}
+                  </div>
 
-                    {/* Ketentuan SI IKK LAN: Gabungkan Jadi 1 PDF */}
-                    {currentAns.berkas.filter((b) => b.nama.toLowerCase().endsWith(".pdf")).length >= 2 && canEdit && (
+                  {/* Ketentuan SI IKK LAN: Gabungkan Jadi 1 PDF */}
+                  {currentQ.kode !== "PROFIL" &&
+                    currentAns.berkas.filter((b) => b.nama.toLowerCase().endsWith(".pdf")).length >= 2 &&
+                    canEdit && (
                       <div className="flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50/70 p-2.5 shadow-2xs">
                         <div className="text-[11px] text-indigo-950 pr-2">
                           <span className="font-bold">Ketentuan SI IKK:</span> Tersedia {currentAns.berkas.filter((b) => b.nama.toLowerCase().endsWith(".pdf")).length} berkas PDF. SI IKK LAN mewajibkan satu dokumen bukti per pertanyaan.
@@ -1914,107 +2060,123 @@ export function AsesmenView() {
                       </div>
                     )}
 
-                    {currentAns.berkas.map((f, idx) => (
-                      <div
-                        key={f.id || idx}
-                        className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-xs"
-                      >
-                        <div className="flex items-center gap-2.5 truncate max-w-[280px]">
-                          <FileText className={`h-4 w-4 flex-shrink-0 ${f.tipe === "word" ? "text-blue-600" : "text-rose-600"}`} />
-                          <div className="truncate">
-                            <div className="font-medium text-slate-900 truncate" title={f.nama}>
-                              {f.nama}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
-                              <span>{f.ukuran} &bull; {f.tipe.toUpperCase()}</span>
-                            </div>
+                  {currentAns.berkas.map((f, idx) => (
+                    <div
+                      key={f.id || idx}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5 truncate max-w-[280px]">
+                        <FileText className={`h-4 w-4 flex-shrink-0 ${f.tipe === "word" ? "text-blue-600" : "text-rose-600"}`} />
+                        <div className="truncate">
+                          <div className="font-medium text-slate-900 truncate" title={f.nama}>
+                            {f.nama}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                            <span>{f.ukuran} &bull; {f.tipe.toUpperCase()}</span>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (f.id === "jfak" && currentAsesmenId) {
+                              window.open(`/api/v1/asesmen/${currentAsesmenId}/unduh-bukti-jfak`, "_blank");
+                            } else if (f.id) {
+                              const token = localStorage.getItem("ikk_token");
+                              const url = token
+                                ? `/api/v1/jawaban/bukti/${f.id}/unduh?token=${encodeURIComponent(token)}`
+                                : `/api/v1/jawaban/bukti/${f.id}/unduh`;
+                              window.open(url, "_blank");
+                            } else {
+                              setToast({
+                                show: true,
+                                type: "warning",
+                                title: "Berkas Belum Tersinkron",
+                                message: `Berkas "${f.nama}" belum tersinkronkan ke server.`,
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700 transition-colors"
+                          title="Buka atau unduh berkas bukti dukung asli"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-slate-500" />
+                          Reviu
+                        </button>
+                        {canEdit && (
                           <button
                             type="button"
-                            onClick={() => {
-                              if (f.id) {
-                                const token = localStorage.getItem("ikk_token");
-                                const url = token
-                                  ? `/api/v1/jawaban/bukti/${f.id}/unduh?token=${encodeURIComponent(token)}`
-                                  : `/api/v1/jawaban/bukti/${f.id}/unduh`;
-                                window.open(url, "_blank");
-                              } else {
-                                setToast({
-                                  show: true,
-                                  type: "warning",
-                                  title: "Berkas Belum Tersinkron",
-                                  message: `Berkas "${f.nama}" belum tersinkronkan ke server.`,
-                                });
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700 transition-colors"
-                            title="Buka atau unduh berkas bukti dukung asli"
+                            onClick={() => handleHapusBerkas(idx)}
+                            className="inline-flex items-center rounded border border-transparent p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-100 transition-colors"
+                            title="Hapus berkas"
                           >
-                            <Eye className="h-3.5 w-3.5 text-slate-500" />
-                            Reviu
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                          {canEdit && (
-                            <button
-                              type="button"
-                              onClick={() => handleHapusBerkas(idx)}
-                              className="inline-flex items-center rounded border border-transparent p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-100 transition-colors"
-                              title="Hapus berkas"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Kolom Catatan Koordinator terhadap Data Dukung (Per Pertanyaan) */}
+            {(peran === "KOORDINATOR" || peran === "ADMIN" || Boolean(currentAns.catatanKoordinator?.trim())) && (
+              <div className="border-t border-slate-200 pt-5 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <span>
+                      Catatan / Komentar Koordinator terhadap Data Dukung ({currentQ.kode})
+                    </span>
+                  </label>
+                  {(peran === "KOORDINATOR" || peran === "ADMIN") && (
+                    <button
+                      type="button"
+                      disabled={isSavingCatatanIndikator}
+                      onClick={() => handleSimpanCatatanIndikator(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-3 py-1 text-[11px] font-bold text-white shadow-2xs transition disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSavingCatatanIndikator ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Save className="h-3 w-3" />
+                      )}
+                      <span>Simpan Catatan</span>
+                    </button>
+                  )}
+                </div>
+
+                {peran === "KOORDINATOR" || peran === "ADMIN" ? (
+                  <>
+                    <textarea
+                      rows={2}
+                      value={currentAns.catatanKoordinator || ""}
+                      onBlur={() => handleSimpanCatatanIndikator(false)}
+                      onChange={(e) => {
+                        setAnswers((prev) => ({
+                          ...prev,
+                          [activeKode]: {
+                            ...currentAns,
+                            catatanKoordinator: e.target.value,
+                          },
+                        }));
+                      }}
+                      placeholder="Berikan catatan/komentar spesifik jika data dukung pada pertanyaan ini kurang lengkap atau belum sesuai..."
+                      className="w-full rounded-xl border border-amber-300 bg-amber-50/40 p-3 text-xs text-slate-900 placeholder:text-amber-700/60 focus:border-amber-600 focus:bg-white focus:ring-1 focus:ring-amber-600 leading-relaxed"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Catatan ini akan tampil langsung pada pertanyaan {currentQ.kode} di akun Analis Satker sebagai acuan perbaikan bukti dukung.
+                    </p>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-3 text-xs text-amber-950 leading-relaxed">
+                    {currentAns.catatanKoordinator}
                   </div>
                 )}
               </div>
             )}
-
-            {/* Clarification Notes */}
-            <div className="border-t border-slate-200 pt-5 space-y-2">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-700">
-                  {currentQ.kode === "PROFIL"
-                    ? "Uraian & Catatan Keterlibatan JFAK"
-                    : "Uraian & Catatan Klarifikasi Analis"}
-                </label>
-                {!canEdit && (
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    Mode Hanya-Baca
-                  </span>
-                )}
-              </div>
-              <textarea
-                rows={2}
-                readOnly={!canEdit}
-                value={currentAns.penjelasan}
-                onBlur={handleBlurPenjelasan}
-                onChange={(e) => {
-                  if (canEdit) {
-                    setAnswers((prev) => ({
-                      ...prev,
-                      [activeKode]: { ...currentAns, penjelasan: e.target.value },
-                    }));
-                  }
-                }}
-                placeholder={
-                  canEdit
-                    ? currentQ.kode === "PROFIL"
-                      ? "Berikan catatan atau penjelasan mengenai tim/analis kebijakan yang terlibat (opsional)..."
-                      : "Berikan penjelasan ringkas mengenai substansi bukti..."
-                    : "Tidak ada uraian tambahan."
-                }
-                className={`w-full rounded-lg border p-2.5 text-xs ${
-                  !canEdit
-                    ? "border-slate-200 bg-slate-50/70 text-slate-700 cursor-not-allowed"
-                    : "border-slate-300 text-slate-900 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                }`}
-              />
-            </div>
 
             {/* Prev / Next Indicator Navigation */}
             <div className="flex items-center justify-between border-t border-slate-200 pt-4">

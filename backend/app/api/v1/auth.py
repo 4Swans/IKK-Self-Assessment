@@ -38,9 +38,7 @@ async def daftar(
     Admin/Koordinator tanpa OTP email).
     """
     clean_nip = payload.nip.strip()
-    clean_email = (
-        payload.email.strip().lower() if payload.email and payload.email.strip() else None
-    )
+    clean_email = payload.email.strip().lower() if payload.email and payload.email.strip() else None
 
     username = (
         payload.username.strip().lower()

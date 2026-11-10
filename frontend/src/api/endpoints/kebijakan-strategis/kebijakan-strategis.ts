@@ -473,4 +473,39 @@ export const usePilihTigaKebijakanSiIkkApiV1KebijakanPilihSiIkkPost = <TError = 
 
       return useMutation(mutationOptions, queryClient);
     }
+
+export const unggahDasarHukumApiV1KebijakanKebijakanIdUnggahDasarHukumPost = (
+    kebijakanId: string,
+    data: { file: Blob },
+    options?: AxiosRequestConfig
+): Promise<AxiosResponse<KebijakanBaca>> => {
+    const formData = new FormData();
+    formData.append('file', data.file);
+    return axios.default.post(`/api/v1/kebijakan/${kebijakanId}/unggah-dasar-hukum`, formData, options);
+};
+
+export const hapusDasarHukumApiV1KebijakanKebijakanIdHapusDasarHukumDelete = (
+    kebijakanId: string,
+    options?: AxiosRequestConfig
+): Promise<AxiosResponse<KebijakanBaca>> => {
+    return axios.default.delete(`/api/v1/kebijakan/${kebijakanId}/hapus-dasar-hukum`, options);
+};
+
+export const unggahRkaklApiV1KebijakanKebijakanIdUnggahRkaklPost = (
+    kebijakanId: string,
+    data: { file: Blob },
+    options?: AxiosRequestConfig
+): Promise<AxiosResponse<KebijakanBaca>> => {
+    const formData = new FormData();
+    formData.append('file', data.file);
+    return axios.default.post(`/api/v1/kebijakan/${kebijakanId}/unggah-rkakl`, formData, options);
+};
+
+export const hapusRkaklApiV1KebijakanKebijakanIdHapusRkaklDelete = (
+    kebijakanId: string,
+    options?: AxiosRequestConfig
+): Promise<AxiosResponse<KebijakanBaca>> => {
+    return axios.default.delete(`/api/v1/kebijakan/${kebijakanId}/hapus-rkakl`, options);
+};
+
     

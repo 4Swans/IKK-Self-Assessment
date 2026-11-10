@@ -440,30 +440,6 @@ function BerandaView() {
               )}
             </div>
           </div>
-
-          {/* Executive Overview Capsule */}
-          <div className="grid grid-cols-2 gap-3 lg:w-72 flex-shrink-0">
-            <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
-              <div className="text-[11px] font-medium text-[#D5DEEF]">Instrumen Aktif</div>
-              <div className="mt-1 text-lg font-bold text-white">IKK 2026</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Versi LAN RI Terkini</div>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
-              <div className="text-[11px] font-medium text-[#D5DEEF]">Target SI IKK</div>
-              <div className="mt-1 text-lg font-bold text-white">Tepat 3 Kebijakan</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Regulasi &amp; Program</div>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
-              <div className="text-[11px] font-medium text-[#D5DEEF]">Cakupan Dimensi</div>
-              <div className="mt-1 text-lg font-bold text-white">4 Dimensi</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">11 Indikator + Profil JFAK</div>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-md">
-              <div className="text-[11px] font-medium text-[#D5DEEF]">Formula Skoring</div>
-              <div className="mt-1 text-lg font-bold text-emerald-300">Presisi Desimal</div>
-              <div className="text-[10px] text-[#B1C9EF] mt-0.5">Kalkulasi Otomatis</div>
-            </div>
-          </div>
         </div>
       </div>
 

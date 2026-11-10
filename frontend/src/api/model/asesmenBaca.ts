@@ -19,6 +19,9 @@ export interface AsesmenBaca {
   melibatkan_jfak?: AsesmenBacaMelibatkanJfak;
   penjelasan_jfak?: AsesmenBacaPenjelasanJfak;
   surat_penunjukan_jfak?: AsesmenBacaSuratPenunjukanJfak;
+  sk_jfak_nama?: string | null;
+  sk_jfak_ukuran?: number | null;
+  catatan_koordinator_jfak?: string | null;
   catatan_koordinator?: string | null;
   jawaban_list?: JawabanBaca[];
   skor_terkini?: AsesmenBacaSkorTerkini;
