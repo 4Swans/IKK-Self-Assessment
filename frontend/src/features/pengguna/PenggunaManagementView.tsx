@@ -18,7 +18,6 @@ import {
   Check,
   UserX,
   CreditCard,
-  Mail,
 } from "lucide-react";
 import { useAuth, Peran } from "../auth/AuthContext";
 import {
@@ -367,12 +366,6 @@ export function PenggunaManagementView() {
 
   const getStatusVerifikasiBadge = (status?: string | null) => {
     switch (status) {
-      case "MENUNGGU_OTP_EMAIL":
-        return {
-          label: "Belum Verifikasi OTP",
-          icon: Mail,
-          className: "bg-slate-100 text-slate-700 border-slate-300",
-        };
       case "MENUNGGU_VERIFIKASI":
         return {
           label: "Menunggu Persetujuan Admin",

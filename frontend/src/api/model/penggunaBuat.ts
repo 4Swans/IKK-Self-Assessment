@@ -23,7 +23,7 @@ export interface PenggunaBuat {
   nip?: PenggunaBuatNip;
   /** @maxLength 255 */
   satuan_kerja?: string;
-  /** @pattern ^(MENUNGGU_OTP_EMAIL|MENUNGGU_VERIFIKASI|AKTIF|DITOLAK)$ */
+  /** @pattern ^(MENUNGGU_VERIFIKASI|AKTIF|DITOLAK)$ */
   status_verifikasi?: string;
   /**
    * @minLength 6

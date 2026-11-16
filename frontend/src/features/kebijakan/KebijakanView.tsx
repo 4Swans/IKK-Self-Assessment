@@ -45,6 +45,10 @@ import {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
+function generateFallbackId(): string {
+  return Date.now().toString();
+}
+
 export function KebijakanView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -461,7 +465,7 @@ export function KebijakanView() {
 
     // Fallback lokal
     const newItem: KebijakanItem = {
-      id: Date.now().toString(),
+      id: generateFallbackId(),
       nama: formNama.trim(),
       jenis_dasar_hukum: finalJenis,
       nomor_dasar_hukum: formNomor.trim() || "-",

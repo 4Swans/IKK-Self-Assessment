@@ -15,17 +15,6 @@ class PenggunaDaftar(BaseModel):
     instansi: str = Field(default="Kementerian Komunikasi dan Digital", max_length=255)
 
 
-class VerifikasiOtpPayload(BaseModel):
-    email: str = Field(..., description="Alamat email @komdigi.go.id yang didaftarkan")
-    kode_otp: str = Field(
-        ..., min_length=6, max_length=6, pattern=r"^\d{6}$", description="6 digit kode OTP"
-    )
-
-
-class KirimUlangOtpPayload(BaseModel):
-    email: str = Field(..., description="Alamat email @komdigi.go.id yang didaftarkan")
-
-
 class PenggunaMasuk(BaseModel):
     username: str = Field(
         ...,
@@ -63,9 +52,6 @@ class RegistrasiRespon(BaseModel):
     pesan: str
     pengguna: PenggunaBaca
     status_verifikasi: str
-    butuh_verifikasi_otp: bool = False
-    email_terkirim_smtp: bool = False
-    kode_otp_simulasi: str | None = None
 
 
 class StatusPendaftaranRespon(BaseModel):

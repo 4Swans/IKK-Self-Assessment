@@ -8,21 +8,7 @@ def test_registrasi_dan_verifikasi_satker(client: TestClient) -> None:
     test_username = f"budi_{uuid.uuid4().hex[:6]}"
     test_email = f"{test_username}@komdigi.go.id"
 
-    # 1. Registrasi dengan domain selain @komdigi.go.id wajib ditolak (422)
-    res_bukan_komdigi = client.post(
-        "/api/v1/auth/daftar",
-        json={
-            "nama": "Budi Santoso",
-            "nip": test_nip,
-            "username": test_username,
-            "email": f"{test_username}@gmail.com",
-            "satuan_kerja": "Direktorat Jenderal Informasi dan Komunikasi Publik",
-            "password": "Password123!",
-        },
-    )
-    assert res_bukan_komdigi.status_code == 422
-
-    # 2. Registrasi sukses dengan email resmi @komdigi.go.id -> Tahap 1 (MENUNGGU_OTP_EMAIL)
+    # 1. Registrasi sukses pegawai Satker -> langsung masuk antrean MENUNGGU_VERIFIKASI
     res_reg = client.post(
         "/api/v1/auth/daftar",
         json={
@@ -36,41 +22,20 @@ def test_registrasi_dan_verifikasi_satker(client: TestClient) -> None:
     )
     assert res_reg.status_code == 201
     data_reg = res_reg.json()
-    assert data_reg["status_verifikasi"] == "MENUNGGU_OTP_EMAIL"
-    assert data_reg["butuh_verifikasi_otp"] is True
+    assert data_reg["status_verifikasi"] == "MENUNGGU_VERIFIKASI"
     assert data_reg["pengguna"]["email"] == test_email
-    assert data_reg["pengguna"]["email_terverifikasi"] is False
-    kode_otp = data_reg["kode_otp_simulasi"]
-    assert kode_otp is not None and len(kode_otp) == 6
+    assert data_reg["pengguna"]["username"] == test_username
     user_id = data_reg["pengguna"]["id"]
 
-    # 3. Login gagal sebelum kode OTP diverifikasi
-    res_login_sebelum_otp = client.post(
-        "/api/v1/auth/masuk",
-        json={"username": test_email, "password": "Password123!"},
-    )
-    assert res_login_sebelum_otp.status_code == 403
-    assert "otp" in res_login_sebelum_otp.json()["detail"].lower()
-
-    # 4. Verifikasi OTP 6 digit -> naik ke Tahap 2 (MENUNGGU_VERIFIKASI / Human-in-the-loop)
-    res_otp = client.post(
-        "/api/v1/auth/verifikasi-otp",
-        json={"email": test_email, "kode_otp": kode_otp},
-    )
-    assert res_otp.status_code == 200
-    data_otp = res_otp.json()
-    assert data_otp["status_verifikasi"] == "MENUNGGU_VERIFIKASI"
-    assert data_otp["pengguna"]["email_terverifikasi"] is True
-
-    # 5. Login masih ditolak sebelum disetujui Admin/Koordinator
+    # 2. Login masih ditolak sebelum disetujui Admin/Koordinator
     res_login_pending = client.post(
         "/api/v1/auth/masuk",
-        json={"username": test_email, "password": "Password123!"},
+        json={"username": test_username, "password": "Password123!"},
     )
     assert res_login_pending.status_code == 403
     assert "persetujuan" in res_login_pending.json()["detail"].lower()
 
-    # 6. Koordinator Pusaka login dan memverifikasi user (Human-in-the-loop)
+    # 3. Koordinator Pusaka login dan memverifikasi user (Human-in-the-loop)
     login_koor = client.post(
         "/api/v1/auth/masuk",
         json={"username": "koordinator", "password": "Password123!"},
@@ -91,12 +56,21 @@ def test_registrasi_dan_verifikasi_satker(client: TestClient) -> None:
     assert res_verif.status_code == 200
     assert res_verif.json()["status_verifikasi"] == "AKTIF"
 
-    # 7. User sekarang berhasil login menggunakan Email @komdigi.go.id maupun Username
+    # 4. User sekarang berhasil login menggunakan Email maupun Username
     res_login_email = client.post(
         "/api/v1/auth/masuk",
         json={"username": test_email, "password": "Password123!"},
     )
     assert res_login_email.status_code == 200
+    assert res_login_email.json()["pengguna"]["satuan_kerja"] == (
+        "Direktorat Jenderal Informasi dan Komunikasi Publik"
+    )
+
+    res_login_username = client.post(
+        "/api/v1/auth/masuk",
+        json={"username": test_username, "password": "Password123!"},
+    )
+    assert res_login_username.status_code == 200
     assert res_login_email.json()["pengguna"]["satuan_kerja"] == (
         "Direktorat Jenderal Informasi dan Komunikasi Publik"
     )

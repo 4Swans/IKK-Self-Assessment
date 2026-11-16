@@ -10,9 +10,9 @@ Aplikasi web internal Kementerian Komunikasi dan Digital untuk penyiapan, pengec
 
 ## Fitur Utama
 
-1. **Verifikasi Akun Dua Tahap (`@komdigi.go.id`)**:
-   - Tahap 1: Pendaftaran menggunakan email kedinasan `@komdigi.go.id` dengan verifikasi kode OTP 6 digit.
-   - Tahap 2: Persetujuan (*Human-in-the-Loop*) oleh Koordinator PUSAKA / Admin untuk memvalidasi penugasan Satuan Kerja.
+1. **Registrasi Mandiri & Verifikasi Penugasan Satker**:
+   - Pendaftaran mandiri Analis Satker menggunakan Nama, NIP, Satuan Kerja, dan Username/Password.
+   - Persetujuan penugasan (*Human-in-the-Loop*) oleh Koordinator PUSAKA / Admin untuk mengaktifkan akun sebelum dapat masuk ke sistem.
 2. **Hierarki Satuan Kerja Resmi Komdigi**:
    - Mendukung 6 kelompok unit Eselon I (5 Direktorat Jenderal + BPSDM Komdigi) beserta 26 Direktorat/Pusat dan Pusat Kebijakan Strategis (PUSAKA).
 3. **Alur Kerja Terpisah Analis Satker & Koordinator**:

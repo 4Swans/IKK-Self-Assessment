@@ -26,12 +26,6 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = Field(default=25)
     ENVIRONMENT: str = Field(default="development")
     CORS_ORIGINS: str = Field(default="http://localhost:5173,http://localhost:8000")
-    SMTP_HOST: str = Field(default="")
-    SMTP_PORT: int = Field(default=587)
-    SMTP_USER: str = Field(default="")
-    SMTP_PASSWORD: str = Field(default="")
-    SMTP_FROM_EMAIL: str = Field(default="noreply-ikk@komdigi.go.id")
-    SMTP_USE_TLS: bool = Field(default=True)
 
     @property
     def async_database_url(self) -> str:

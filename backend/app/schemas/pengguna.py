@@ -27,9 +27,7 @@ class PenggunaBuat(BaseModel):
     email: EmailStr | None = None
     nip: str | None = Field(default=None, max_length=50)
     satuan_kerja: str = Field(default="Pusat Kebijakan Strategis (PUSAKA)", max_length=255)
-    status_verifikasi: str = Field(
-        default="AKTIF", pattern="^(MENUNGGU_OTP_EMAIL|MENUNGGU_VERIFIKASI|AKTIF|DITOLAK)$"
-    )
+    status_verifikasi: str = Field(default="AKTIF", pattern="^(MENUNGGU_VERIFIKASI|AKTIF|DITOLAK)$")
     password: str = Field(..., min_length=6, max_length=100)
     peran: str = Field(default="ANALIS", pattern="^(ANALIS|KOORDINATOR|ADMIN)$")
     instansi: str = Field(default="Kementerian Komunikasi dan Digital", max_length=255)
@@ -42,7 +40,7 @@ class PenggunaUbah(BaseModel):
     nip: str | None = Field(default=None, max_length=50)
     satuan_kerja: str | None = Field(default=None, max_length=255)
     status_verifikasi: str | None = Field(
-        default=None, pattern="^(MENUNGGU_OTP_EMAIL|MENUNGGU_VERIFIKASI|AKTIF|DITOLAK)$"
+        default=None, pattern="^(MENUNGGU_VERIFIKASI|AKTIF|DITOLAK)$"
     )
     peran: str | None = Field(default=None, pattern="^(ANALIS|KOORDINATOR|ADMIN)$")
     instansi: str | None = Field(default=None, max_length=255)

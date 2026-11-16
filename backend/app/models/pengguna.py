@@ -15,7 +15,6 @@ class PeranPengguna(StrEnum):
 
 
 class StatusVerifikasi(StrEnum):
-    MENUNGGU_OTP_EMAIL = "MENUNGGU_OTP_EMAIL"
     MENUNGGU_VERIFIKASI = "MENUNGGU_VERIFIKASI"
     AKTIF = "AKTIF"
     DITOLAK = "DITOLAK"
@@ -43,10 +42,6 @@ class Pengguna(Base):
     catatan_penolakan: Mapped[str | None] = mapped_column(Text, nullable=True)
     email_terverifikasi: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
-    )
-    kode_otp: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    otp_kadaluarsa_pada: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False

@@ -6,13 +6,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { PenggunaBaca } from './penggunaBaca';
-import type { RegistrasiResponKodeOtpSimulasi } from './registrasiResponKodeOtpSimulasi';
 
 export interface RegistrasiRespon {
   pesan: string;
   pengguna: PenggunaBaca;
   status_verifikasi: string;
-  butuh_verifikasi_otp?: boolean;
-  email_terkirim_smtp?: boolean;
-  kode_otp_simulasi?: RegistrasiResponKodeOtpSimulasi;
 }

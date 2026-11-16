@@ -1,5 +1,3 @@
-from datetime import UTC, datetime, timedelta
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,16 +8,13 @@ from app.core.dependencies import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.pengguna import Pengguna, StatusVerifikasi
 from app.schemas.auth import (
-    KirimUlangOtpPayload,
     PenggunaBaca,
     PenggunaDaftar,
     PenggunaMasuk,
     RegistrasiRespon,
     StatusPendaftaranRespon,
     TokenRespon,
-    VerifikasiOtpPayload,
 )
-from app.services.email_otp import generate_kode_otp, kirim_email_otp
 
 router = APIRouter(prefix="/auth", tags=["Autentikasi"])
 
@@ -99,8 +94,6 @@ async def daftar(
         satuan_kerja=payload.satuan_kerja.strip(),
         status_verifikasi=StatusVerifikasi.MENUNGGU_VERIFIKASI,
         email_terverifikasi=True,
-        kode_otp=None,
-        otp_kadaluarsa_pada=None,
         password_hash=hash_password(payload.password),
         peran=payload.peran,
         instansi=payload.instansi,
@@ -116,9 +109,6 @@ async def daftar(
         ),
         pengguna=PenggunaBaca.model_validate(user),
         status_verifikasi=user.status_verifikasi,
-        butuh_verifikasi_otp=False,
-        email_terkirim_smtp=False,
-        kode_otp_simulasi=None,
     )
 
 
@@ -169,115 +159,6 @@ async def cek_status_pendaftaran(
     )
 
 
-@router.post("/verifikasi-otp", response_model=RegistrasiRespon)
-async def verifikasi_otp(
-    payload: VerifikasiOtpPayload,
-    db: AsyncSession = Depends(get_db),
-) -> RegistrasiRespon:
-    """
-    Memverifikasi 6 digit kode OTP email @komdigi.go.id, lalu meneruskan akun ke antrean
-    persetujuan Admin/Koordinator (Human-in-the-Loop).
-    """
-    clean_email = payload.email.strip().lower()
-    stmt = select(Pengguna).where(Pengguna.email == clean_email)
-    res = await db.execute(stmt)
-    user = res.scalars().first()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Akun dengan alamat email kedinasan tersebut tidak ditemukan.",
-        )
-
-    if user.email_terverifikasi and user.status_verifikasi != StatusVerifikasi.MENUNGGU_OTP_EMAIL:
-        return RegistrasiRespon(
-            pesan="Email kedinasan Anda sudah terverifikasi sebelumnya.",
-            pengguna=PenggunaBaca.model_validate(user),
-            status_verifikasi=user.status_verifikasi,
-            butuh_verifikasi_otp=False,
-        )
-
-    now = datetime.now(UTC)
-    if (
-        not user.kode_otp
-        or user.kode_otp != payload.kode_otp.strip()
-        or not user.otp_kadaluarsa_pada
-        or user.otp_kadaluarsa_pada < now
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Kode OTP tidak sesuai atau telah kedaluwarsa (lebih dari 10 menit). "
-                "Silakan periksa kembali atau klik Kirim Ulang Kode OTP."
-            ),
-        )
-
-    user.email_terverifikasi = True
-    user.status_verifikasi = StatusVerifikasi.MENUNGGU_VERIFIKASI
-    user.kode_otp = None
-    user.otp_kadaluarsa_pada = None
-
-    await db.commit()
-    await db.refresh(user)
-
-    return RegistrasiRespon(
-        pesan=(
-            "Verifikasi email @komdigi.go.id berhasil! Akun Anda kini diteruskan ke "
-            "Admin / Koordinator PUSAKA untuk validasi kesesuaian Satuan Kerja."
-        ),
-        pengguna=PenggunaBaca.model_validate(user),
-        status_verifikasi=user.status_verifikasi,
-        butuh_verifikasi_otp=False,
-    )
-
-
-@router.post("/kirim-ulang-otp", response_model=RegistrasiRespon)
-async def kirim_ulang_otp(
-    payload: KirimUlangOtpPayload,
-    db: AsyncSession = Depends(get_db),
-) -> RegistrasiRespon:
-    """Mengirimkan ulang 6 digit kode OTP baru ke alamat email @komdigi.go.id."""
-    clean_email = payload.email.strip().lower()
-    stmt = select(Pengguna).where(Pengguna.email == clean_email)
-    res = await db.execute(stmt)
-    user = res.scalars().first()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Akun dengan alamat email kedinasan tersebut tidak ditemukan.",
-        )
-
-    if user.status_verifikasi != StatusVerifikasi.MENUNGGU_OTP_EMAIL:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email akun ini sudah terverifikasi sebelumnya.",
-        )
-
-    otp = generate_kode_otp()
-    user.kode_otp = otp
-    user.otp_kadaluarsa_pada = datetime.now(UTC) + timedelta(minutes=10)
-    await db.commit()
-    await db.refresh(user)
-
-    terkirim_smtp = await kirim_email_otp(
-        email_tujuan=clean_email,
-        nama=user.nama,
-        satuan_kerja=user.satuan_kerja,
-        kode_otp=otp,
-    )
-    kode_simulasi = otp if (not terkirim_smtp and settings.ENVIRONMENT != "production") else None
-
-    return RegistrasiRespon(
-        pesan=f"Kode OTP baru telah dikirimkan ulang ke {clean_email}.",
-        pengguna=PenggunaBaca.model_validate(user),
-        status_verifikasi=user.status_verifikasi,
-        butuh_verifikasi_otp=True,
-        email_terkirim_smtp=terkirim_smtp,
-        kode_otp_simulasi=kode_simulasi,
-    )
-
-
 @router.post("/masuk", response_model=TokenRespon)
 async def masuk(
     payload: PenggunaMasuk,
@@ -297,21 +178,12 @@ async def masuk(
             detail="Email kedinasan / nama pengguna atau kata sandi tidak cocok.",
         )
 
-    if user.status_verifikasi == StatusVerifikasi.MENUNGGU_OTP_EMAIL:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                f"Email kedinasan ({user.email}) belum diverifikasi dengan kode OTP. "
-                "Silakan selesaikan verifikasi kode OTP terlebih dahulu."
-            ),
-        )
-
     if user.status_verifikasi == StatusVerifikasi.MENUNGGU_VERIFIKASI:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                "Email kedinasan Anda sudah terverifikasi, namun akun sedang menunggu "
-                "persetujuan Admin / Koordinator PUSAKA untuk validasi Satuan Kerja."
+                "Pendaftaran akun Anda sedang menunggu persetujuan Admin / "
+                "Koordinator PUSAKA untuk validasi Satuan Kerja."
             ),
         )
 

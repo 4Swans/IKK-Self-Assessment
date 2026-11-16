@@ -34,13 +34,11 @@ import type {
 import type {
   HTTPValidationError,
   KeluarApiV1AuthKeluarPost200,
-  KirimUlangOtpPayload,
   PenggunaBaca,
   PenggunaDaftar,
   PenggunaMasuk,
   RegistrasiRespon,
-  TokenRespon,
-  VerifikasiOtpPayload
+  TokenRespon
 } from '../../model';
 
 
@@ -48,7 +46,7 @@ import type {
 
 
 /**
- * Registrasi mandiri pegawai Satker Komdigi (Tahap 1: Kirim Kode OTP ke Email @komdigi.go.id).
+ * Registrasi mandiri pegawai Satker (langsung masuk antrean verifikasi Admin/Koordinator).
  * @summary Daftar
  */
 export const daftarApiV1AuthDaftarPost = (
@@ -106,131 +104,6 @@ export const useDaftarApiV1AuthDaftarPost = <TError = AxiosError<HTTPValidationE
       > => {
 
       const mutationOptions = getDaftarApiV1AuthDaftarPostMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    /**
- * Memverifikasi 6 digit kode OTP email @komdigi.go.id, lalu meneruskan akun ke antrean
-persetujuan Admin/Koordinator (Human-in-the-Loop).
- * @summary Verifikasi Otp
- */
-export const verifikasiOtpApiV1AuthVerifikasiOtpPost = (
-    verifikasiOtpPayload: VerifikasiOtpPayload, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<RegistrasiRespon>> => {
-    
-    
-    return axios.default.post(
-      `/api/v1/auth/verifikasi-otp`,
-      verifikasiOtpPayload,options
-    );
-  }
-
-
-
-export const getVerifikasiOtpApiV1AuthVerifikasiOtpPostMutationOptions = <TError = AxiosError<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifikasiOtpApiV1AuthVerifikasiOtpPost>>, TError,{data: VerifikasiOtpPayload}, TContext>, axios?: AxiosRequestConfig}
-): UseMutationOptions<Awaited<ReturnType<typeof verifikasiOtpApiV1AuthVerifikasiOtpPost>>, TError,{data: VerifikasiOtpPayload}, TContext> => {
-
-const mutationKey = ['verifikasiOtpApiV1AuthVerifikasiOtpPost'];
-const {mutation: mutationOptions, axios: axiosOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, axios: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifikasiOtpApiV1AuthVerifikasiOtpPost>>, {data: VerifikasiOtpPayload}> = (props) => {
-          const {data} = props ?? {};
-
-          return  verifikasiOtpApiV1AuthVerifikasiOtpPost(data,axiosOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type VerifikasiOtpApiV1AuthVerifikasiOtpPostMutationResult = NonNullable<Awaited<ReturnType<typeof verifikasiOtpApiV1AuthVerifikasiOtpPost>>>
-    export type VerifikasiOtpApiV1AuthVerifikasiOtpPostMutationBody = VerifikasiOtpPayload
-    export type VerifikasiOtpApiV1AuthVerifikasiOtpPostMutationError = AxiosError<HTTPValidationError>
-
-    /**
- * @summary Verifikasi Otp
- */
-export const useVerifikasiOtpApiV1AuthVerifikasiOtpPost = <TError = AxiosError<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifikasiOtpApiV1AuthVerifikasiOtpPost>>, TError,{data: VerifikasiOtpPayload}, TContext>, axios?: AxiosRequestConfig}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof verifikasiOtpApiV1AuthVerifikasiOtpPost>>,
-        TError,
-        {data: VerifikasiOtpPayload},
-        TContext
-      > => {
-
-      const mutationOptions = getVerifikasiOtpApiV1AuthVerifikasiOtpPostMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    /**
- * Mengirimkan ulang 6 digit kode OTP baru ke alamat email @komdigi.go.id.
- * @summary Kirim Ulang Otp
- */
-export const kirimUlangOtpApiV1AuthKirimUlangOtpPost = (
-    kirimUlangOtpPayload: KirimUlangOtpPayload, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<RegistrasiRespon>> => {
-    
-    
-    return axios.default.post(
-      `/api/v1/auth/kirim-ulang-otp`,
-      kirimUlangOtpPayload,options
-    );
-  }
-
-
-
-export const getKirimUlangOtpApiV1AuthKirimUlangOtpPostMutationOptions = <TError = AxiosError<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kirimUlangOtpApiV1AuthKirimUlangOtpPost>>, TError,{data: KirimUlangOtpPayload}, TContext>, axios?: AxiosRequestConfig}
-): UseMutationOptions<Awaited<ReturnType<typeof kirimUlangOtpApiV1AuthKirimUlangOtpPost>>, TError,{data: KirimUlangOtpPayload}, TContext> => {
-
-const mutationKey = ['kirimUlangOtpApiV1AuthKirimUlangOtpPost'];
-const {mutation: mutationOptions, axios: axiosOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, axios: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kirimUlangOtpApiV1AuthKirimUlangOtpPost>>, {data: KirimUlangOtpPayload}> = (props) => {
-          const {data} = props ?? {};
-
-          return  kirimUlangOtpApiV1AuthKirimUlangOtpPost(data,axiosOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type KirimUlangOtpApiV1AuthKirimUlangOtpPostMutationResult = NonNullable<Awaited<ReturnType<typeof kirimUlangOtpApiV1AuthKirimUlangOtpPost>>>
-    export type KirimUlangOtpApiV1AuthKirimUlangOtpPostMutationBody = KirimUlangOtpPayload
-    export type KirimUlangOtpApiV1AuthKirimUlangOtpPostMutationError = AxiosError<HTTPValidationError>
-
-    /**
- * @summary Kirim Ulang Otp
- */
-export const useKirimUlangOtpApiV1AuthKirimUlangOtpPost = <TError = AxiosError<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kirimUlangOtpApiV1AuthKirimUlangOtpPost>>, TError,{data: KirimUlangOtpPayload}, TContext>, axios?: AxiosRequestConfig}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof kirimUlangOtpApiV1AuthKirimUlangOtpPost>>,
-        TError,
-        {data: KirimUlangOtpPayload},
-        TContext
-      > => {
-
-      const mutationOptions = getKirimUlangOtpApiV1AuthKirimUlangOtpPostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

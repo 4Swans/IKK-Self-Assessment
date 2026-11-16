@@ -34,12 +34,6 @@ services:
       - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-25}
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-admin@#!}
-      - SMTP_HOST=${SMTP_HOST:-}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply-ikk@komdigi.go.id}
-      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
     volumes:
       - ikk_uploads:/app/uploads
     ports:
