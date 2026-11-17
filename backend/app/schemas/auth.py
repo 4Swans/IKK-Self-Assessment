@@ -11,7 +11,6 @@ class PenggunaDaftar(BaseModel):
     email: str | None = Field(default=None, description="Alamat email (opsional)")
     satuan_kerja: str = Field(..., min_length=2, max_length=255, description="Satuan Kerja asal")
     password: str = Field(..., min_length=6, max_length=100)
-    peran: str = Field(default="ANALIS", pattern="^(ANALIS|KOORDINATOR|ADMIN)$")
     instansi: str = Field(default="Kementerian Komunikasi dan Digital", max_length=255)
 
 

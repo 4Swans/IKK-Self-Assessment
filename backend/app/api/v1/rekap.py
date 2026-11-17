@@ -25,6 +25,7 @@ from app.schemas.rekap import (
     PeriodeRekapBaca,
     RekapPeriodeBaca,
 )
+from app.services.berkas import header_content_disposition
 from app.services.ekspor import buat_ekspor_excel_rekap
 from app.services.satker import bangun_filter_satker
 from app.services.skoring import (
@@ -218,11 +219,19 @@ async def ambil_rekap_periode(
 
         # Hitung skor: eksak jika lengkap, parsial jika belum lengkap
         lengkap = len(jawaban_skor) == total_pertanyaan
+        melibatkan_jfak_keb = (
+            asesmen.melibatkan_jfak
+            if (asesmen and asesmen.melibatkan_jfak is not None)
+            else periode.melibatkan_jfak
+        )
+        skor_profil_tidak_val = (
+            instrumen.skor_profil_tidak if instrumen.skor_profil_tidak is not None else Decimal("0")
+        )
         hasil_skoring: HasilSkoring = hitung_skor_kebijakan(
-            melibatkan_jfak=periode.melibatkan_jfak,
+            melibatkan_jfak=melibatkan_jfak_keb,
             bobot_profil=instrumen.bobot_profil,
             skor_profil_ya=instrumen.skor_profil_ya,
-            skor_profil_tidak=instrumen.skor_profil_tidak,
+            skor_profil_tidak=skor_profil_tidak_val,
             dimensi_config=dimensi_config,
             jawaban_skor=jawaban_skor,
             ambang_kualifikasi=ambang_list,
@@ -362,5 +371,9 @@ async def unduh_ekspor_excel(
     return Response(
         content=excel_stream.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{nama_file}"'},
+        headers={
+            "Content-Disposition": header_content_disposition("attachment", nama_file),
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
     )

@@ -134,8 +134,27 @@ async def muat_instrumen(tahun: int) -> None:
                             )
                             session.add(opsi)
 
+            # Sinkronkan ambang kualifikasi
+            res_ambang = await session.execute(
+                select(AmbangKualifikasi).where(AmbangKualifikasi.instrumen_id == existing.id)
+            )
+            ambang_map = {a.kualifikasi: a for a in res_ambang.scalars().all()}
+            for ambang_data in data.get("ambang_kualifikasi", []):
+                kual = ambang_data["kualifikasi"]
+                min_val = Decimal(str(ambang_data["min_nilai"]))
+                if kual in ambang_map:
+                    ambang_map[kual].min_nilai = min_val
+                else:
+                    session.add(
+                        AmbangKualifikasi(
+                            instrumen_id=existing.id,
+                            min_nilai=min_val,
+                            kualifikasi=kual,
+                        )
+                    )
+
             await session.commit()
-            print("Pembaruan instrumen, dimensi, pertanyaan, dan opsi selesai!")
+            print("Pembaruan instrumen, dimensi, pertanyaan, opsi, dan ambang selesai!")
             return
 
         instrumen = Instrumen(

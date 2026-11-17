@@ -61,9 +61,16 @@ async def daftar_pengguna_menunggu_verifikasi(
 async def verifikasi_pengguna(
     pengguna_id: uuid.UUID,
     payload: VerifikasiPenggunaPayload,
+    current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PenggunaBaca:
     """Verifikasi pengguna (menyetujui 'AKTIF' atau menolak 'DITOLAK' pendaftaran satker)."""
+    if current_user.id == pengguna_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Anda tidak dapat memverifikasi atau menolak akun Anda sendiri.",
+        )
+
     stmt = select(Pengguna).where(Pengguna.id == pengguna_id)
     res = await db.execute(stmt)
     user = res.scalar_one_or_none()
@@ -71,6 +78,23 @@ async def verifikasi_pengguna(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pengguna tidak ditemukan.",
+        )
+
+    if user.peran == "ADMIN" or (current_user.peran != "ADMIN" and user.peran != "ANALIS"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Anda tidak memiliki wewenang memverifikasi atau mengubah status akun peran ini."
+            ),
+        )
+
+    if user.status_verifikasi == StatusVerifikasi.AKTIF:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Akun pengguna ini sudah aktif. "
+                "Gunakan menu Edit Pengguna (khusus Admin) untuk mengubah status."
+            ),
         )
 
     user.status_verifikasi = payload.status

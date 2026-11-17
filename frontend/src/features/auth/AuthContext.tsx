@@ -144,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("ikk_token");
       localStorage.removeItem("ikk_active_role");
       localStorage.removeItem("ikk_user_profile");
+      localStorage.removeItem("ikk_kebijakan_list");
       delete axios.defaults.headers.common["Authorization"];
       setIsAuthenticated(false);
       setCurrentUser(EMPTY_USER_PROFIL);

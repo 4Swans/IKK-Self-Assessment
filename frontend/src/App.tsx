@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,13 +15,26 @@ import {
   FolderPlus,
   FileSpreadsheet,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
 
-import { KebijakanView } from "./features/kebijakan/KebijakanView";
-import { AsesmenView } from "./features/asesmen/AsesmenView";
-import { RekapView } from "./features/rekap/RekapView";
-import { LoginView } from "./features/auth/LoginView";
-import { PenggunaManagementView } from "./features/pengguna/PenggunaManagementView";
+const KebijakanView = lazy(() =>
+  import("./features/kebijakan/KebijakanView").then((m) => ({ default: m.KebijakanView }))
+);
+const AsesmenView = lazy(() =>
+  import("./features/asesmen/AsesmenView").then((m) => ({ default: m.AsesmenView }))
+);
+const RekapView = lazy(() =>
+  import("./features/rekap/RekapView").then((m) => ({ default: m.RekapView }))
+);
+const LoginView = lazy(() =>
+  import("./features/auth/LoginView").then((m) => ({ default: m.LoginView }))
+);
+const PenggunaManagementView = lazy(() =>
+  import("./features/pengguna/PenggunaManagementView").then((m) => ({
+    default: m.PenggunaManagementView,
+  }))
+);
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import { RoleSwitcher } from "./features/auth/RoleSwitcher";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -188,43 +201,52 @@ function AppShell() {
 
       {/* Main Content Area */}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <Routes>
-          <Route path="/" element={<BerandaView />} />
-          <Route path="/login" element={<LoginView />} />
-          <Route path="/periode" element={<Navigate to="/kebijakan" replace />} />
-          <Route
-            path="/kebijakan"
-            element={
-              <ProtectedRoute allowedRoles={["ANALIS", "KOORDINATOR", "ADMIN"]}>
-                <KebijakanView />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/asesmen"
-            element={
-              <ProtectedRoute allowedRoles={["ANALIS", "KOORDINATOR", "ADMIN"]}>
-                <AsesmenView />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rekap"
-            element={
-              <ProtectedRoute allowedRoles={["ANALIS", "KOORDINATOR", "ADMIN"]}>
-                <RekapView />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pengguna"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN", "KOORDINATOR"]}>
-                <PenggunaManagementView />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <Suspense
+          fallback={
+            <div className="flex min-h-[40vh] items-center justify-center gap-2 text-xs text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin text-[#395886]" />
+              <span>Memuat modul...</span>
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/" element={<BerandaView />} />
+            <Route path="/login" element={<LoginView />} />
+            <Route path="/periode" element={<Navigate to="/kebijakan" replace />} />
+            <Route
+              path="/kebijakan"
+              element={
+                <ProtectedRoute allowedRoles={["ANALIS", "KOORDINATOR", "ADMIN"]}>
+                  <KebijakanView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/asesmen"
+              element={
+                <ProtectedRoute allowedRoles={["ANALIS", "KOORDINATOR", "ADMIN"]}>
+                  <AsesmenView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rekap"
+              element={
+                <ProtectedRoute allowedRoles={["ANALIS", "KOORDINATOR", "ADMIN"]}>
+                  <RekapView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengguna"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN", "KOORDINATOR"]}>
+                  <PenggunaManagementView />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
       </main>
 
       {/* Footer */}

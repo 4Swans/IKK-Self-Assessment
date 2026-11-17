@@ -1,10 +1,9 @@
-import os
 import uuid
 from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -27,6 +26,11 @@ from app.schemas.asesmen import (
     HasilSkorBaca,
     NilaiDimensiBaca,
 )
+from app.services.berkas import (
+    bangun_response_berkas,
+    hapus_berkas_disk_aman,
+    validasi_dan_baca_berkas,
+)
 from app.services.satker import satker_cocok
 from app.services.skoring import (
     HasilSkoring,
@@ -35,6 +39,32 @@ from app.services.skoring import (
 )
 
 router = APIRouter(prefix="/asesmen", tags=["Asesmen"])
+
+
+def _cek_akses_asesmen(
+    asesmen: Asesmen,
+    current_user: Pengguna,
+    perlu_edit: bool = False,
+    aksi_label: str = "mengakses",
+) -> None:
+    """Validasi isolasi Satuan Kerja dan kunci status asesmen saat Analis mengedit."""
+    if (
+        current_user.peran == "ANALIS"
+        and asesmen.kebijakan
+        and asesmen.kebijakan.satuan_kerja
+        and not satker_cocok(asesmen.kebijakan.satuan_kerja, current_user.satuan_kerja)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Anda tidak memiliki hak akses {aksi_label} asesmen dari satuan kerja lain.",
+        )
+
+    if perlu_edit and current_user.peran == "ANALIS":
+        if asesmen.status not in [StatusAsesmen.DRAF, StatusAsesmen.PERLU_PERBAIKAN]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Asesmen berstatus {asesmen.status} tidak dapat diubah.",
+            )
 
 
 async def hitung_skor_asesmen_internal(
@@ -270,7 +300,10 @@ async def ajukan_asesmen(
     stmt = (
         select(Asesmen)
         .where(Asesmen.id == asesmen_id)
-        .options(selectinload(Asesmen.jawaban_list).selectinload(Jawaban.bukti_dukung_list))
+        .options(
+            selectinload(Asesmen.kebijakan).selectinload(Kebijakan.periode),
+            selectinload(Asesmen.jawaban_list).selectinload(Jawaban.bukti_dukung_list),
+        )
     )
     res = await db.execute(stmt)
     asesmen = res.scalar_one_or_none()
@@ -279,34 +312,60 @@ async def ajukan_asesmen(
             status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
         )
 
+    _cek_akses_asesmen(asesmen, current_user, perlu_edit=False, aksi_label="mengajukan")
+
     if asesmen.status not in [StatusAsesmen.DRAF, StatusAsesmen.PERLU_PERBAIKAN]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Tidak dapat mengajukan asesmen dengan status {asesmen.status}.",
         )
 
-    # Validasi AGENTS.md 6.7: Aksi ajukan ditolak jika ada pertanyaan
-    # tanpa opsi atau tanpa bukti dukung
-    if not asesmen.jawaban_list:
+    # Ambil seluruh pertanyaan pada instrumen aktif untuk validasi kelengkapan 11 indikator
+    instrumen_id = asesmen.kebijakan.periode.instrumen_id
+    stmt_inst = (
+        select(Instrumen)
+        .where(Instrumen.id == instrumen_id)
+        .options(selectinload(Instrumen.dimensi_list).selectinload(Dimensi.pertanyaan_list))
+    )
+    res_inst = await db.execute(stmt_inst)
+    instrumen = res_inst.scalars().first()
+    if not instrumen:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Asesmen belum memiliki jawaban terisi.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Instrumen pengukuran periode ini tidak ditemukan.",
         )
 
-    for j in asesmen.jawaban_list:
-        if not j.opsi_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Seluruh pertanyaan wajib dipilih opsi jawabannya sebelum diajukan.",
-            )
-        if not j.bukti_dukung_list and not j.tautan_bukti:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Setiap pertanyaan wajib memiliki bukti dukung "
-                    "(unggah berkas atau tautan publik)."
-                ),
-            )
+    semua_pertanyaan = sorted(
+        (p for d in instrumen.dimensi_list for p in d.pertanyaan_list),
+        key=lambda q: q.kode,
+    )
+    peta_jawaban = {j.pertanyaan_id: j for j in asesmen.jawaban_list}
+
+    belum_opsi: list[str] = []
+    belum_bukti: list[str] = []
+    for p in semua_pertanyaan:
+        j = peta_jawaban.get(p.id)
+        if not j or not j.opsi_id:
+            belum_opsi.append(p.kode)
+        elif not j.bukti_dukung_list and not (j.tautan_bukti and j.tautan_bukti.strip()):
+            belum_bukti.append(p.kode)
+
+    if belum_opsi:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Seluruh indikator wajib dipilih opsi jawabannya sebelum diajukan. "
+                f"Indikator belum terjawab: {', '.join(belum_opsi)}."
+            ),
+        )
+    if belum_bukti:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Setiap indikator wajib memiliki bukti dukung (unggah berkas atau tautan publik). "
+                f"Indikator belum memiliki bukti: {', '.join(belum_bukti)}."
+            ),
+        )
 
     asesmen.status = StatusAsesmen.DIAJUKAN
     db.add(
@@ -513,33 +572,13 @@ async def perbarui_jfak_asesmen(
             status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
         )
 
-    if (
-        current_user.peran == "ANALIS"
-        and asesmen.kebijakan
-        and asesmen.kebijakan.satuan_kerja
-        and asesmen.kebijakan.satuan_kerja != current_user.satuan_kerja
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses mengubah asesmen dari satuan kerja lain.",
-        )
-
-    if current_user.peran == "ANALIS" and asesmen.status not in [
-        StatusAsesmen.DRAF,
-        StatusAsesmen.PERLU_PERBAIKAN,
-    ]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Asesmen berstatus {asesmen.status} tidak dapat diubah.",
-        )
+    _cek_akses_asesmen(asesmen, current_user, perlu_edit=True, aksi_label="mengubah")
 
     asesmen.melibatkan_jfak = payload.melibatkan_jfak
     if payload.penjelasan_jfak is not None:
         asesmen.penjelasan_jfak = payload.penjelasan_jfak
     if payload.surat_penunjukan_jfak is not None:
         asesmen.surat_penunjukan_jfak = payload.surat_penunjukan_jfak
-    if payload.catatan_koordinator_jfak is not None:
-        asesmen.catatan_koordinator_jfak = payload.catatan_koordinator_jfak
 
     await db.commit()
     return await ambil_asesmen_lengkap(asesmen.id, db, current_user=current_user)
@@ -586,34 +625,17 @@ async def unggah_bukti_jfak(
             status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
         )
 
-    if (
-        current_user.peran == "ANALIS"
-        and asesmen.kebijakan
-        and asesmen.kebijakan.satuan_kerja
-        and not satker_cocok(asesmen.kebijakan.satuan_kerja, current_user.satuan_kerja)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses mengubah asesmen dari satuan kerja lain.",
-        )
+    _cek_akses_asesmen(asesmen, current_user, perlu_edit=True, aksi_label="mengubah")
 
-    ext = Path(file.filename or "").suffix.lower()
-    allowed_exts = {".pdf", ".docx", ".doc"}
-    if ext not in allowed_exts:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Format file tidak didukung ({ext}). Harap gunakan dokumen PDF "
-                "atau Word (.pdf, .docx, .doc)."
-            ),
-        )
-
-    contents = await file.read()
-    if len(contents) > settings.MAX_UPLOAD_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Ukuran file melebihi batas maksimum {settings.MAX_UPLOAD_MB} MB.",
-        )
+    contents, safe_display_name, ext, canonical_mime, _ = await validasi_dan_baca_berkas(
+        file,
+        allowed_exts={".pdf", ".docx", ".doc"},
+        max_mb=settings.MAX_UPLOAD_MB,
+        pesan_format_salah=(
+            f"Format file tidak didukung ({Path(file.filename or '').suffix.lower()}). "
+            "Harap gunakan dokumen PDF atau Word (.pdf, .docx, .doc)."
+        ),
+    )
 
     upload_dir = Path(settings.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -622,11 +644,13 @@ async def unggah_bukti_jfak(
     target_path = upload_dir / safe_name
     target_path.write_bytes(contents)
 
+    hapus_berkas_disk_aman(asesmen.surat_penunjukan_jfak)
+
     asesmen.surat_penunjukan_jfak = str(target_path)
-    asesmen.sk_jfak_nama = file.filename or safe_name
-    asesmen.sk_jfak_mime = file.content_type or "application/pdf"
+    asesmen.sk_jfak_nama = safe_display_name
+    asesmen.sk_jfak_mime = canonical_mime
     asesmen.sk_jfak_ukuran = len(contents)
-    asesmen.sk_jfak_konten = contents
+    asesmen.sk_jfak_konten = contents if settings.SIMPAN_KONTEN_DB else None
     await db.commit()
     return await ambil_asesmen_lengkap(asesmen.id, db, current_user=current_user)
 
@@ -646,32 +670,23 @@ async def unduh_bukti_jfak(
             status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
         )
 
-    nama_file = asesmen.sk_jfak_nama or asesmen.surat_penunjukan_jfak or "SK_JFAK.pdf"
-    mime = asesmen.sk_jfak_mime or "application/pdf"
-    disp_type = "inline" if mime == "application/pdf" else "attachment"
+    _cek_akses_asesmen(
+        asesmen, current_user, perlu_edit=False, aksi_label="mengunduh berkas SK JFAK"
+    )
 
-    if asesmen.surat_penunjukan_jfak:
-        disk_path = asesmen.surat_penunjukan_jfak
-        if not os.path.isabs(disk_path) and not os.path.exists(disk_path):
-            disk_path = str(Path(settings.UPLOAD_DIR) / disk_path)
-        if os.path.exists(disk_path):
-            return FileResponse(
-                path=disk_path,
-                filename=nama_file,
-                media_type=mime,
-                content_disposition_type=disp_type,
-            )
-
-    if asesmen.sk_jfak_konten:
-        return Response(
-            content=asesmen.sk_jfak_konten,
-            media_type=mime,
-            headers={"Content-Disposition": f'{disp_type}; filename="{nama_file}"'},
+    if not asesmen.surat_penunjukan_jfak and not asesmen.sk_jfak_konten:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Berkas SK JFAK belum diunggah atau tidak ditemukan.",
         )
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Berkas SK JFAK belum diunggah atau tidak ditemukan.",
+    nama_file = asesmen.sk_jfak_nama or Path(asesmen.surat_penunjukan_jfak or "SK_JFAK.pdf").name
+    return bangun_response_berkas(
+        disk_path=asesmen.surat_penunjukan_jfak,
+        konten=asesmen.sk_jfak_konten,
+        nama_file=nama_file,
+        mime=asesmen.sk_jfak_mime,
+        not_found_detail="Berkas SK JFAK belum diunggah atau tidak ditemukan.",
     )
 
 
@@ -690,22 +705,9 @@ async def hapus_bukti_jfak(
             status_code=status.HTTP_404_NOT_FOUND, detail="Asesmen tidak ditemukan."
         )
 
-    if (
-        current_user.peran == "ANALIS"
-        and asesmen.kebijakan
-        and asesmen.kebijakan.satuan_kerja
-        and not satker_cocok(asesmen.kebijakan.satuan_kerja, current_user.satuan_kerja)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses mengubah asesmen dari satuan kerja lain.",
-        )
+    _cek_akses_asesmen(asesmen, current_user, perlu_edit=True, aksi_label="menghapus berkas")
 
-    if asesmen.surat_penunjukan_jfak and os.path.exists(asesmen.surat_penunjukan_jfak):
-        try:
-            os.remove(asesmen.surat_penunjukan_jfak)
-        except OSError:
-            pass
+    hapus_berkas_disk_aman(asesmen.surat_penunjukan_jfak)
 
     asesmen.surat_penunjukan_jfak = None
     asesmen.sk_jfak_nama = None

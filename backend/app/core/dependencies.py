@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
-from app.models.pengguna import Pengguna
+from app.models.pengguna import Pengguna, StatusVerifikasi
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -23,12 +23,9 @@ async def get_current_user(
     # Cek authorization header
     if creds:
         token = creds.credentials
-    # Cek cookie
+    # Cek cookie httpOnly
     elif "session_token" in request.cookies:
         token = request.cookies["session_token"]
-    # Cek query param untuk unduhan tab baru
-    elif "token" in request.query_params:
-        token = request.query_params["token"]
 
     if not token:
         raise HTTPException(
@@ -59,6 +56,12 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Pengguna tidak ditemukan.",
+        )
+
+    if user.status_verifikasi != StatusVerifikasi.AKTIF:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akun pengguna tidak aktif atau belum disetujui.",
         )
 
     return user

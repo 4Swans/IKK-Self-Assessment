@@ -56,6 +56,7 @@ import { useDaftarKebijakanApiV1KebijakanGet } from "../../api/endpoints/kebijak
 import { useDaftarPeriodeApiV1PeriodeGet } from "../../api/endpoints/periode/periode";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/AuthContext";
+import { bukaBerkasTerotentikasi } from "../../lib/download";
 
 interface OpsiItem {
   huruf: string;
@@ -879,11 +880,13 @@ export function AsesmenView() {
       if (q.kode === "PROFIL") {
         continue;
       }
-      const hasEvidence = Boolean(ans.berkas && ans.berkas.length > 0);
+      const hasEvidence = Boolean(
+        (ans.berkas && ans.berkas.length > 0) || (ans.tautan && ans.tautan.trim())
+      );
       if (!hasEvidence) {
         showToast(
           "Bukti Dukung Dokumen Wajib Ada",
-          `Indikator ${q.kode} wajib melampirkan minimal 1 berkas bukti dukung dokumen (PDF/Word) sebelum diajukan ke Koordinator.`,
+          `Indikator ${q.kode} wajib melampirkan minimal 1 berkas bukti dukung dokumen (PDF/Word) atau tautan publik sebelum diajukan ke Koordinator.`,
           "warning"
         );
         return;
@@ -2071,8 +2074,17 @@ export function AsesmenView() {
                           <div className="font-medium text-slate-900 truncate" title={f.nama}>
                             {f.nama}
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5 flex-wrap">
                             <span>{f.ukuran} &bull; {f.tipe.toUpperCase()}</span>
+                            {f.ada_lapisan_teks === false && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                                title="Dokumen PDF ini terdeteksi sebagai hasil pindaian (scan gambar) tanpa lapisan teks. SI IKK LAN menyarankan PDF berbasis teks agar terbaca otomatis."
+                              >
+                                <AlertCircle className="h-3 w-3 text-amber-600" />
+                                <span>Hasil Scan (Tanpa Lapisan Teks)</span>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2080,22 +2092,32 @@ export function AsesmenView() {
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                           type="button"
-                          onClick={() => {
-                            if (f.id === "jfak" && currentAsesmenId) {
-                              window.open(`/api/v1/asesmen/${currentAsesmenId}/unduh-bukti-jfak`, "_blank");
-                            } else if (f.id) {
-                              const token = localStorage.getItem("ikk_token");
-                              const url = token
-                                ? `/api/v1/jawaban/bukti/${f.id}/unduh?token=${encodeURIComponent(token)}`
-                                : `/api/v1/jawaban/bukti/${f.id}/unduh`;
-                              window.open(url, "_blank");
-                            } else {
-                              setToast({
-                                show: true,
-                                type: "warning",
-                                title: "Berkas Belum Tersinkron",
-                                message: `Berkas "${f.nama}" belum tersinkronkan ke server.`,
-                              });
+                          onClick={async () => {
+                            try {
+                              if (f.id === "jfak" && currentAsesmenId) {
+                                await bukaBerkasTerotentikasi(
+                                  `/api/v1/asesmen/${currentAsesmenId}/unduh-bukti-jfak`,
+                                  f.nama
+                                );
+                              } else if (f.id) {
+                                await bukaBerkasTerotentikasi(
+                                  `/api/v1/jawaban/bukti/${f.id}/unduh`,
+                                  f.nama
+                                );
+                              } else {
+                                setToast({
+                                  show: true,
+                                  type: "warning",
+                                  title: "Berkas Belum Tersinkron",
+                                  message: `Berkas "${f.nama}" belum tersinkronkan ke server.`,
+                                });
+                              }
+                            } catch (err: any) {
+                              showToast(
+                                "Gagal Membuka Berkas",
+                                err?.message || "Berkas tidak dapat dibuka atau diunduh.",
+                                "error"
+                              );
                             }
                           }}
                           className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700 transition-colors"

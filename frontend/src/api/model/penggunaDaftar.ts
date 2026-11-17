@@ -35,8 +35,6 @@ export interface PenggunaDaftar {
    * @maxLength 100
    */
   password: string;
-  /** @pattern ^(ANALIS|KOORDINATOR|ADMIN)$ */
-  peran?: string;
   /** @maxLength 255 */
   instansi?: string;
 }

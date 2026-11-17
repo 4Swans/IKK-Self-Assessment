@@ -1043,7 +1043,7 @@ export function RekapView() {
                       <span>Interpretasi Radar Dimensi IKK</span>
                     </div>
                     <p className="leading-relaxed text-blue-800 text-[11px]">
-                      Grafik pentagon memetakan capaian di 5 poros utama: <strong>A. Perencanaan (25%)</strong>, <strong>B. Implementasi (30%)</strong>, <strong>C. Evaluasi (15%)</strong>, <strong>D. Transparansi (20%)</strong>, dan <strong>JFAK (10%)</strong>.
+                      Grafik pentagon memetakan capaian di 5 poros utama: <strong>A. Perencanaan (20%)</strong>, <strong>B. Implementasi (25%)</strong>, <strong>C. Evaluasi (30%)</strong>, <strong>D. Transparansi (15%)</strong>, dan <strong>JFAK (10%)</strong>.
                     </p>
                   </div>
                 </div>

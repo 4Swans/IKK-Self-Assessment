@@ -1,10 +1,9 @@
-import os
 import uuid
 from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -24,10 +23,42 @@ from app.schemas.kebijakan import (
     KebijakanUbah,
     PilihTigaKebijakanPayload,
 )
+from app.services.berkas import (
+    bangun_response_berkas,
+    hapus_berkas_disk_aman,
+    validasi_dan_baca_berkas,
+)
 from app.services.satker import bangun_filter_satker, satker_cocok
 from app.services.skoring import hitung_skor_kebijakan
 
 router = APIRouter(prefix="/kebijakan", tags=["Kebijakan Strategis"])
+
+
+def _cek_akses_kebijakan(
+    item: Kebijakan,
+    current_user: Pengguna,
+    perlu_edit: bool = False,
+    aksi_label: str = "mengakses",
+) -> None:
+    """Validasi isolasi Satuan Kerja untuk Analis dan kunci status asesmen saat mengedit."""
+    if (
+        current_user.peran == "ANALIS"
+        and item.satuan_kerja
+        and not satker_cocok(item.satuan_kerja, current_user.satuan_kerja)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Anda tidak memiliki hak akses {aksi_label} kebijakan dari satuan kerja lain.",
+        )
+
+    if perlu_edit and current_user.peran == "ANALIS" and item.asesmen:
+        if item.asesmen.status not in [StatusAsesmen.DRAF, StatusAsesmen.PERLU_PERBAIKAN]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Kebijakan tidak dapat diubah karena asesmen berstatus {item.asesmen.status}."
+                ),
+            )
 
 
 def cek_peringatan_rentang_tahun(tanggal_penetapan_tahun: int, tahun_periode: int) -> bool:
@@ -260,15 +291,7 @@ async def detail_kebijakan(
         )
 
     # Analis tidak boleh mengakses kebijakan satker lain
-    if (
-        current_user.peran == "ANALIS"
-        and item.satuan_kerja
-        and not satker_cocok(item.satuan_kerja, current_user.satuan_kerja)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses melihat kebijakan dari satuan kerja lain.",
-        )
+    _cek_akses_kebijakan(item, current_user, perlu_edit=False, aksi_label="melihat")
 
     stmt_p = select(Periode).where(Periode.id == item.periode_id)
     res_p = await db.execute(stmt_p)
@@ -292,7 +315,11 @@ async def ubah_kebijakan(
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> KebijakanBaca:
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
+    stmt = (
+        select(Kebijakan)
+        .where(Kebijakan.id == kebijakan_id)
+        .options(selectinload(Kebijakan.asesmen))
+    )
     res = await db.execute(stmt)
     item = res.scalar_one_or_none()
     if not item:
@@ -300,16 +327,7 @@ async def ubah_kebijakan(
             status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
         )
 
-    # Analis hanya boleh mengedit kebijakan dari satkernya sendiri
-    if (
-        current_user.peran == "ANALIS"
-        and item.satuan_kerja
-        and item.satuan_kerja != current_user.satuan_kerja
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses mengubah kebijakan dari satuan kerja lain.",
-        )
+    _cek_akses_kebijakan(item, current_user, perlu_edit=True, aksi_label="mengubah")
 
     if payload.nama is not None:
         item.nama = payload.nama
@@ -378,7 +396,11 @@ async def hapus_kebijakan(
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
+    stmt = (
+        select(Kebijakan)
+        .where(Kebijakan.id == kebijakan_id)
+        .options(selectinload(Kebijakan.asesmen))
+    )
     res = await db.execute(stmt)
     item = res.scalar_one_or_none()
     if not item:
@@ -386,16 +408,10 @@ async def hapus_kebijakan(
             status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
         )
 
-    if (
-        current_user.peran == "ANALIS"
-        and item.satuan_kerja
-        and not satker_cocok(item.satuan_kerja, current_user.satuan_kerja)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses menghapus kebijakan dari satuan kerja lain.",
-        )
+    _cek_akses_kebijakan(item, current_user, perlu_edit=True, aksi_label="menghapus")
 
+    hapus_berkas_disk_aman(item.berkas_dasar_hukum_path)
+    hapus_berkas_disk_aman(item.berkas_rkakl_path)
     await db.delete(item)
     await db.commit()
 
@@ -473,14 +489,68 @@ async def pilih_tiga_kebijakan_si_ikk(
 ALLOWED_KEBIJAKAN_EXTS = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".txt"}
 
 
-@router.post("/{kebijakan_id}/unggah-dasar-hukum", response_model=KebijakanBaca)
-async def unggah_dasar_hukum_kebijakan(
+async def _unggah_dokumen_kebijakan(
     kebijakan_id: uuid.UUID,
-    file: UploadFile = File(...),
-    current_user: Pengguna = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    prefix: str,
+    file: UploadFile,
+    current_user: Pengguna,
+    db: AsyncSession,
 ) -> KebijakanBaca:
-    """Mengunggah berkas Dasar Hukum pada kebijakan."""
+    stmt = (
+        select(Kebijakan)
+        .where(Kebijakan.id == kebijakan_id)
+        .options(selectinload(Kebijakan.asesmen))
+    )
+    res = await db.execute(stmt)
+    item = res.scalar_one_or_none()
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
+        )
+
+    _cek_akses_kebijakan(item, current_user, perlu_edit=True, aksi_label="mengubah")
+
+    contents, safe_display_name, ext, canonical_mime, _ = await validasi_dan_baca_berkas(
+        file,
+        allowed_exts=ALLOWED_KEBIJAKAN_EXTS,
+        max_mb=settings.MAX_UPLOAD_MB,
+        pesan_format_salah=(
+            f"Format berkas tidak didukung ({Path(file.filename or '').suffix.lower()}). "
+            "Gunakan PDF, Word, Excel, atau Teks."
+        ),
+    )
+
+    upload_dir = Path(settings.UPLOAD_DIR)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = f"{prefix}_{kebijakan_id}_{uuid.uuid4().hex[:8]}{ext}"
+    target_path = upload_dir / safe_name
+    target_path.write_bytes(contents)
+
+    old_path = getattr(item, f"berkas_{prefix}_path")
+    hapus_berkas_disk_aman(old_path)
+
+    setattr(item, f"berkas_{prefix}_nama", safe_display_name)
+    setattr(item, f"berkas_{prefix}_path", str(target_path))
+    setattr(item, f"berkas_{prefix}_mime", canonical_mime)
+    setattr(
+        item,
+        f"berkas_{prefix}_konten",
+        contents if settings.SIMPAN_KONTEN_DB else None,
+    )
+
+    await db.commit()
+    await db.refresh(item)
+    return KebijakanBaca.model_validate(item)
+
+
+async def _unduh_dokumen_kebijakan(
+    kebijakan_id: uuid.UUID,
+    prefix: str,
+    label: str,
+    fallback_filename: str,
+    current_user: Pengguna,
+    db: AsyncSession,
+) -> Response:
     stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
     res = await db.execute(stmt)
     item = res.scalar_one_or_none()
@@ -489,44 +559,67 @@ async def unggah_dasar_hukum_kebijakan(
             status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
         )
 
-    if (
-        current_user.peran == "ANALIS"
-        and item.satuan_kerja
-        and not satker_cocok(item.satuan_kerja, current_user.satuan_kerja)
-    ):
+    _cek_akses_kebijakan(item, current_user, perlu_edit=False, aksi_label="mengunduh berkas")
+
+    disk_path: str | None = getattr(item, f"berkas_{prefix}_path")
+    konten: bytes | None = getattr(item, f"berkas_{prefix}_konten")
+    if not disk_path and not konten:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses mengubah kebijakan dari satuan kerja lain.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Berkas {label} belum diunggah.",
         )
 
-    ext = Path(file.filename or "").suffix.lower()
-    if ext not in ALLOWED_KEBIJAKAN_EXTS:
+    nama_file: str = getattr(item, f"berkas_{prefix}_nama") or fallback_filename
+    mime: str | None = getattr(item, f"berkas_{prefix}_mime")
+    return bangun_response_berkas(
+        disk_path=disk_path,
+        konten=konten,
+        nama_file=nama_file,
+        mime=mime,
+        not_found_detail=f"Berkas {label} tidak ditemukan.",
+    )
+
+
+async def _hapus_dokumen_kebijakan(
+    kebijakan_id: uuid.UUID,
+    prefix: str,
+    current_user: Pengguna,
+    db: AsyncSession,
+) -> KebijakanBaca:
+    stmt = (
+        select(Kebijakan)
+        .where(Kebijakan.id == kebijakan_id)
+        .options(selectinload(Kebijakan.asesmen))
+    )
+    res = await db.execute(stmt)
+    item = res.scalar_one_or_none()
+    if not item:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Format berkas tidak didukung ({ext}). Gunakan PDF, Word, atau Excel.",
+            status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
         )
 
-    contents = await file.read()
-    if len(contents) > settings.MAX_UPLOAD_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Ukuran berkas melebihi batas maksimum {settings.MAX_UPLOAD_MB} MB.",
-        )
+    _cek_akses_kebijakan(item, current_user, perlu_edit=True, aksi_label="menghapus berkas")
 
-    upload_dir = Path(settings.UPLOAD_DIR)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    safe_name = f"dasar_hukum_{kebijakan_id}_{uuid.uuid4().hex[:8]}{ext}"
-    target_path = upload_dir / safe_name
-    target_path.write_bytes(contents)
-
-    item.berkas_dasar_hukum_nama = file.filename or safe_name
-    item.berkas_dasar_hukum_path = str(target_path)
-    item.berkas_dasar_hukum_mime = file.content_type or "application/pdf"
-    item.berkas_dasar_hukum_konten = contents
+    hapus_berkas_disk_aman(getattr(item, f"berkas_{prefix}_path"))
+    setattr(item, f"berkas_{prefix}_nama", None)
+    setattr(item, f"berkas_{prefix}_path", None)
+    setattr(item, f"berkas_{prefix}_mime", None)
+    setattr(item, f"berkas_{prefix}_konten", None)
 
     await db.commit()
     await db.refresh(item)
     return KebijakanBaca.model_validate(item)
+
+
+@router.post("/{kebijakan_id}/unggah-dasar-hukum", response_model=KebijakanBaca)
+async def unggah_dasar_hukum_kebijakan(
+    kebijakan_id: uuid.UUID,
+    file: UploadFile = File(...),
+    current_user: Pengguna = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> KebijakanBaca:
+    """Mengunggah berkas Dasar Hukum pada kebijakan."""
+    return await _unggah_dokumen_kebijakan(kebijakan_id, "dasar_hukum", file, current_user, db)
 
 
 @router.get("/{kebijakan_id}/unduh-dasar-hukum")
@@ -536,38 +629,8 @@ async def unduh_dasar_hukum_kebijakan(
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Mengunduh atau melihat pratinjau berkas Dasar Hukum kebijakan."""
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
-    res = await db.execute(stmt)
-    item = res.scalar_one_or_none()
-    if not item or (not item.berkas_dasar_hukum_path and not item.berkas_dasar_hukum_konten):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Berkas dasar hukum belum diunggah.",
-        )
-
-    nama_file = item.berkas_dasar_hukum_nama or "Dasar_Hukum.pdf"
-    mime = item.berkas_dasar_hukum_mime or (
-        "application/pdf" if nama_file.lower().endswith(".pdf") else "application/octet-stream"
-    )
-    disp_type = "inline" if mime == "application/pdf" else "attachment"
-
-    if item.berkas_dasar_hukum_path and os.path.exists(item.berkas_dasar_hukum_path):
-        return FileResponse(
-            path=item.berkas_dasar_hukum_path,
-            filename=nama_file,
-            media_type=mime,
-            content_disposition_type=disp_type,
-        )
-
-    if item.berkas_dasar_hukum_konten:
-        return Response(
-            content=item.berkas_dasar_hukum_konten,
-            media_type=mime,
-            headers={"Content-Disposition": f'{disp_type}; filename="{nama_file}"'},
-        )
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Berkas dasar hukum tidak ditemukan."
+    return await _unduh_dokumen_kebijakan(
+        kebijakan_id, "dasar_hukum", "dasar hukum", "Dasar_Hukum.pdf", current_user, db
     )
 
 
@@ -577,27 +640,8 @@ async def hapus_dasar_hukum_kebijakan(
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> KebijakanBaca:
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
-    res = await db.execute(stmt)
-    item = res.scalar_one_or_none()
-    if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
-        )
-
-    if item.berkas_dasar_hukum_path and os.path.exists(item.berkas_dasar_hukum_path):
-        try:
-            os.remove(item.berkas_dasar_hukum_path)
-        except OSError:
-            pass
-
-    item.berkas_dasar_hukum_nama = None
-    item.berkas_dasar_hukum_path = None
-    item.berkas_dasar_hukum_mime = None
-    item.berkas_dasar_hukum_konten = None
-    await db.commit()
-    await db.refresh(item)
-    return KebijakanBaca.model_validate(item)
+    """Menghapus berkas Dasar Hukum pada kebijakan."""
+    return await _hapus_dokumen_kebijakan(kebijakan_id, "dasar_hukum", current_user, db)
 
 
 @router.post("/{kebijakan_id}/unggah-rkakl", response_model=KebijakanBaca)
@@ -608,52 +652,7 @@ async def unggah_rkakl_kebijakan(
     db: AsyncSession = Depends(get_db),
 ) -> KebijakanBaca:
     """Mengunggah berkas RKAKL pada kebijakan."""
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
-    res = await db.execute(stmt)
-    item = res.scalar_one_or_none()
-    if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
-        )
-
-    if (
-        current_user.peran == "ANALIS"
-        and item.satuan_kerja
-        and not satker_cocok(item.satuan_kerja, current_user.satuan_kerja)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Anda tidak memiliki hak akses mengubah kebijakan dari satuan kerja lain.",
-        )
-
-    ext = Path(file.filename or "").suffix.lower()
-    if ext not in ALLOWED_KEBIJAKAN_EXTS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Format berkas tidak didukung ({ext}). Gunakan PDF, Word, atau Excel.",
-        )
-
-    contents = await file.read()
-    if len(contents) > settings.MAX_UPLOAD_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Ukuran berkas melebihi batas maksimum {settings.MAX_UPLOAD_MB} MB.",
-        )
-
-    upload_dir = Path(settings.UPLOAD_DIR)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    safe_name = f"rkakl_{kebijakan_id}_{uuid.uuid4().hex[:8]}{ext}"
-    target_path = upload_dir / safe_name
-    target_path.write_bytes(contents)
-
-    item.berkas_rkakl_nama = file.filename or safe_name
-    item.berkas_rkakl_path = str(target_path)
-    item.berkas_rkakl_mime = file.content_type or "application/pdf"
-    item.berkas_rkakl_konten = contents
-
-    await db.commit()
-    await db.refresh(item)
-    return KebijakanBaca.model_validate(item)
+    return await _unggah_dokumen_kebijakan(kebijakan_id, "rkakl", file, current_user, db)
 
 
 @router.get("/{kebijakan_id}/unduh-rkakl")
@@ -663,38 +662,8 @@ async def unduh_rkakl_kebijakan(
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Mengunduh atau melihat pratinjau berkas RKAKL kebijakan."""
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
-    res = await db.execute(stmt)
-    item = res.scalar_one_or_none()
-    if not item or (not item.berkas_rkakl_path and not item.berkas_rkakl_konten):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Berkas RKAKL belum diunggah.",
-        )
-
-    nama_file = item.berkas_rkakl_nama or "RKAKL.pdf"
-    mime = item.berkas_rkakl_mime or (
-        "application/pdf" if nama_file.lower().endswith(".pdf") else "application/octet-stream"
-    )
-    disp_type = "inline" if mime == "application/pdf" else "attachment"
-
-    if item.berkas_rkakl_path and os.path.exists(item.berkas_rkakl_path):
-        return FileResponse(
-            path=item.berkas_rkakl_path,
-            filename=nama_file,
-            media_type=mime,
-            content_disposition_type=disp_type,
-        )
-
-    if item.berkas_rkakl_konten:
-        return Response(
-            content=item.berkas_rkakl_konten,
-            media_type=mime,
-            headers={"Content-Disposition": f'{disp_type}; filename="{nama_file}"'},
-        )
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Berkas RKAKL tidak ditemukan."
+    return await _unduh_dokumen_kebijakan(
+        kebijakan_id, "rkakl", "RKAKL", "RKAKL.pdf", current_user, db
     )
 
 
@@ -704,24 +673,5 @@ async def hapus_rkakl_kebijakan(
     current_user: Pengguna = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> KebijakanBaca:
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
-    res = await db.execute(stmt)
-    item = res.scalar_one_or_none()
-    if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Kebijakan tidak ditemukan."
-        )
-
-    if item.berkas_rkakl_path and os.path.exists(item.berkas_rkakl_path):
-        try:
-            os.remove(item.berkas_rkakl_path)
-        except OSError:
-            pass
-
-    item.berkas_rkakl_nama = None
-    item.berkas_rkakl_path = None
-    item.berkas_rkakl_mime = None
-    item.berkas_rkakl_konten = None
-    await db.commit()
-    await db.refresh(item)
-    return KebijakanBaca.model_validate(item)
+    """Menghapus berkas RKAKL pada kebijakan."""
+    return await _hapus_dokumen_kebijakan(kebijakan_id, "rkakl", current_user, db)

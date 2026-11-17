@@ -5,8 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import rate_limit
 from app.core.security import create_access_token, hash_password, verify_password
-from app.models.pengguna import Pengguna, StatusVerifikasi
+from app.models.pengguna import Pengguna, PeranPengguna, StatusVerifikasi
 from app.schemas.auth import (
     PenggunaBaca,
     PenggunaDaftar,
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/auth", tags=["Autentikasi"])
     "/daftar",
     response_model=RegistrasiRespon,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit(15, 60, "auth_daftar"))],
 )
 async def daftar(
     payload: PenggunaDaftar,
@@ -95,7 +97,7 @@ async def daftar(
         status_verifikasi=StatusVerifikasi.MENUNGGU_VERIFIKASI,
         email_terverifikasi=True,
         password_hash=hash_password(payload.password),
-        peran=payload.peran,
+        peran=PeranPengguna.ANALIS,
         instansi=payload.instansi,
     )
     db.add(user)
@@ -112,19 +114,22 @@ async def daftar(
     )
 
 
-@router.get("/status-pendaftaran", response_model=StatusPendaftaranRespon)
+@router.get(
+    "/status-pendaftaran",
+    response_model=StatusPendaftaranRespon,
+    dependencies=[Depends(rate_limit(30, 60, "auth_status_pendaftaran"))],
+)
 async def cek_status_pendaftaran(
     username: str,
     db: AsyncSession = Depends(get_db),
 ) -> StatusPendaftaranRespon:
-    """Mengecek status verifikasi pendaftaran akun secara berkala (polling real-time)."""
+    """Mengecek status verifikasi pendaftaran akun secara berkala tanpa membocorkan PII."""
     clean_username = username.strip().lower()
     stmt = select(Pengguna).where(Pengguna.username == clean_username)
     res = await db.execute(stmt)
     user = res.scalars().first()
 
     if not user:
-        # Akun yang ditolak langsung dihapus dari sistem
         return StatusPendaftaranRespon(
             username=clean_username,
             status="DITOLAK",
@@ -135,8 +140,6 @@ async def cek_status_pendaftaran(
         return StatusPendaftaranRespon(
             username=clean_username,
             status="AKTIF",
-            nama=user.nama,
-            satuan_kerja=user.satuan_kerja,
             pesan="Akun Anda telah disetujui dan aktif.",
         )
 
@@ -144,8 +147,6 @@ async def cek_status_pendaftaran(
         return StatusPendaftaranRespon(
             username=clean_username,
             status="DITOLAK",
-            nama=user.nama,
-            satuan_kerja=user.satuan_kerja,
             pesan="Pendaftaran akun ditolak oleh Admin / Koordinator.",
             alasan_penolakan=user.catatan_penolakan,
         )
@@ -153,13 +154,15 @@ async def cek_status_pendaftaran(
     return StatusPendaftaranRespon(
         username=clean_username,
         status="MENUNGGU",
-        nama=user.nama,
-        satuan_kerja=user.satuan_kerja,
         pesan="Pendaftaran akun sedang menunggu persetujuan Admin / Koordinator PUSAKA.",
     )
 
 
-@router.post("/masuk", response_model=TokenRespon)
+@router.post(
+    "/masuk",
+    response_model=TokenRespon,
+    dependencies=[Depends(rate_limit(30, 60, "auth_masuk"))],
+)
 async def masuk(
     payload: PenggunaMasuk,
     response: Response,

@@ -20,6 +20,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+import { bukaBerkasTerotentikasi } from "../../lib/download";
 import {
   DAFTAR_SATKER_KOMDIGI,
   DAFTAR_SATKER_GROUPED,
@@ -144,8 +145,8 @@ export function KebijakanView() {
           tanggal_penetapan: k.tanggal_penetapan,
           deskripsi: k.deskripsi ?? matched?.deskripsi ?? "",
           tahun_pengukuran: k.tahun_pengukuran ?? matched?.tahun_pengukuran ?? 2025,
-          berkas_dasar_hukum_nama: k.berkas_dasar_hukum_nama ?? matched?.berkas_dasar_hukum_nama ?? undefined,
-          berkas_rkakl_nama: k.berkas_rkakl_nama ?? matched?.berkas_rkakl_nama ?? undefined,
+          berkas_dasar_hukum_nama: k.berkas_dasar_hukum_nama ?? undefined,
+          berkas_rkakl_nama: k.berkas_rkakl_nama ?? undefined,
           dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
           rekomendasi: k.rekomendasi || "",
           satuan_kerja: k.satuan_kerja || undefined,
@@ -227,8 +228,8 @@ export function KebijakanView() {
           tanggal_penetapan: k.tanggal_penetapan,
           deskripsi: k.deskripsi ?? matched?.deskripsi ?? "",
           tahun_pengukuran: k.tahun_pengukuran ?? matched?.tahun_pengukuran ?? 2025,
-          berkas_dasar_hukum_nama: k.berkas_dasar_hukum_nama ?? matched?.berkas_dasar_hukum_nama ?? undefined,
-          berkas_rkakl_nama: k.berkas_rkakl_nama ?? matched?.berkas_rkakl_nama ?? undefined,
+          berkas_dasar_hukum_nama: k.berkas_dasar_hukum_nama ?? undefined,
+          berkas_rkakl_nama: k.berkas_rkakl_nama ?? undefined,
           dipilih_untuk_si_ikk: k.dipilih_untuk_si_ikk,
           rekomendasi: k.rekomendasi || "",
           satuan_kerja: k.satuan_kerja || undefined,
@@ -1169,16 +1170,29 @@ export function KebijakanView() {
                           <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-[11px] text-emerald-900">
                             <FileText className="h-3 w-3 text-emerald-600 flex-shrink-0" />
                             <span className="font-semibold">Dasar Hukum:</span>
-                            <a
-                              href={`${API_BASE}/api/v1/kebijakan/${item.id}/unduh-dasar-hukum`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="max-w-[160px] truncate underline hover:text-emerald-700 font-medium inline-flex items-center gap-1"
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await bukaBerkasTerotentikasi(
+                                    `${API_BASE}/api/v1/kebijakan/${item.id}/unduh-dasar-hukum`,
+                                    item.berkas_dasar_hukum_nama || "Dasar_Hukum.pdf"
+                                  );
+                                } catch (err: any) {
+                                  setToast({
+                                    show: true,
+                                    type: "error",
+                                    title: "Gagal Membuka Dasar Hukum",
+                                    message: err?.message || "Berkas tidak dapat dibuka.",
+                                  });
+                                }
+                              }}
+                              className="max-w-[160px] truncate underline hover:text-emerald-700 font-medium inline-flex items-center gap-1 cursor-pointer"
                               title={`Lihat/Unduh ${item.berkas_dasar_hukum_nama}`}
                             >
                               <span>{item.berkas_dasar_hukum_nama}</span>
                               <Eye className="h-3 w-3 flex-shrink-0" />
-                            </a>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleHapusDokumenKebijakan(item.id, "dasar_hukum")}
@@ -1213,16 +1227,29 @@ export function KebijakanView() {
                           <div className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-[11px] text-blue-900">
                             <FileText className="h-3 w-3 text-blue-600 flex-shrink-0" />
                             <span className="font-semibold">RKAKL:</span>
-                            <a
-                              href={`${API_BASE}/api/v1/kebijakan/${item.id}/unduh-rkakl`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="max-w-[160px] truncate underline hover:text-blue-700 font-medium inline-flex items-center gap-1"
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await bukaBerkasTerotentikasi(
+                                    `${API_BASE}/api/v1/kebijakan/${item.id}/unduh-rkakl`,
+                                    item.berkas_rkakl_nama || "RKAKL.pdf"
+                                  );
+                                } catch (err: any) {
+                                  setToast({
+                                    show: true,
+                                    type: "error",
+                                    title: "Gagal Membuka RKAKL",
+                                    message: err?.message || "Berkas tidak dapat dibuka.",
+                                  });
+                                }
+                              }}
+                              className="max-w-[160px] truncate underline hover:text-blue-700 font-medium inline-flex items-center gap-1 cursor-pointer"
                               title={`Lihat/Unduh ${item.berkas_rkakl_nama}`}
                             >
                               <span>{item.berkas_rkakl_nama}</span>
                               <Eye className="h-3 w-3 flex-shrink-0" />
-                            </a>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleHapusDokumenKebijakan(item.id, "rkakl")}

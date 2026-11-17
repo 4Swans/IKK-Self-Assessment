@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-# Install system dependencies (curl, build-essential)
+# Install system dependencies (curl, build-essential, libpq-dev)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
@@ -12,14 +12,20 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
+# Buat pengguna non-root untuk keamanan kontainer
+RUN groupadd --system appuser && useradd --system --gid appuser --create-home appuser
+
 # Salin dependencies definition
 COPY pyproject.toml uv.lock ./
 
 # Install python dependencies menggunakan uv
 RUN uv sync --frozen --no-dev
 
-# Salin seluruh kode aplikasi
+# Salin seluruh kode aplikasi dan siapkan direktori uploads
 COPY . .
+RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
+
+USER appuser
 
 # Port
 EXPOSE 8000

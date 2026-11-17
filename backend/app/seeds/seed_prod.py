@@ -1,19 +1,30 @@
 import asyncio
+import logging
 import os
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.instrumen import Instrumen
 from app.models.pengguna import Pengguna, PeranPengguna
 from app.models.periode import Periode
 
+logger = logging.getLogger("ikk.seed")
+
 
 async def seed_production_initial_data() -> None:
     """Inisialisasi akun utama & Periode aktif 2026 untuk lingkungan prototipe/produksi."""
     admin_password = os.getenv("ADMIN_INITIAL_PASSWORD", "admin@#!")
     default_password = os.getenv("DEMO_INITIAL_PASSWORD", "Password123!")
+    if settings.is_production and (
+        admin_password == "admin@#!" or default_password == "Password123!"
+    ):
+        logger.warning(
+            "PERINGATAN KEAMANAN: ADMIN_INITIAL_PASSWORD atau DEMO_INITIAL_PASSWORD "
+            "masih menggunakan kata sandi bawaan. Segera ubah kata sandi akun awal setelah deploy."
+        )
     async with AsyncSessionLocal() as session:
         # 1. Pastikan akun Admin, Koordinator PUSAKA, dan Analis Satker tersedia
         initial_accounts: list[dict[str, object]] = [
@@ -72,8 +83,6 @@ async def seed_production_initial_data() -> None:
                 await session.flush()
                 print(f"Akun {acc['username']} berhasil diinisialisasi.")
             else:
-                existing_u.email_terverifikasi = True
-                existing_u.status_verifikasi = "AKTIF"
                 print(f"Akun {acc['username']} sudah tersedia.")
 
         # 2. Pastikan Periode Aktif 2026 tersedia untuk Instrumen 2026

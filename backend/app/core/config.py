@@ -24,8 +24,21 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = Field(default=False)
     UPLOAD_DIR: str = Field(default="/tmp/uploads" if os.getenv("VERCEL") else "./uploads")
     MAX_UPLOAD_MB: int = Field(default=25)
+    SIMPAN_KONTEN_DB: bool = Field(default=bool(os.getenv("VERCEL")))
     ENVIRONMENT: str = Field(default="development")
+    ENABLE_API_DOCS: bool | None = Field(default=None)
     CORS_ORIGINS: str = Field(default="http://localhost:5173,http://localhost:8000")
+    CORS_ORIGIN_REGEX: str = Field(default="")
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.strip().lower() == "production"
+
+    @property
+    def show_api_docs(self) -> bool:
+        if self.ENABLE_API_DOCS is not None:
+            return self.ENABLE_API_DOCS
+        return not self.is_production
 
     @property
     def async_database_url(self) -> str:

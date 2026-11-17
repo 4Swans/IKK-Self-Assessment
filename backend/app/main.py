@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -140,8 +141,19 @@ async def ensure_vercel_db_initialized() -> None:
         _vercel_init_error = f"{type(exc).__name__}: {exc}"
 
 
+logger = logging.getLogger("ikk.security")
+_DEFAULT_INSECURE_SECRET = "change-me-to-a-super-secret-random-key-in-production-min-32-chars"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    if settings.is_production and (
+        settings.SECRET_KEY == _DEFAULT_INSECURE_SECRET or len(settings.SECRET_KEY) < 32
+    ):
+        logger.critical(
+            "PERINGATAN KEAMANAN: SECRET_KEY produksi masih menggunakan nilai bawaan atau "
+            "kurang dari 32 karakter! Segera ganti SECRET_KEY di file .env."
+        )
     if os.getenv("VERCEL"):
         await ensure_vercel_db_initialized()
     else:
@@ -160,19 +172,20 @@ app = FastAPI(
         "Indeks Kualitas Kebijakan (IKK) LAN RI."
     ),
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.show_api_docs else None,
+    redoc_url="/redoc" if settings.show_api_docs else None,
+    openapi_url="/openapi.json" if settings.show_api_docs else None,
     lifespan=lifespan,
 )
 
-# CORS Middleware (mendukung seluruh subdomain preview/production Vercel)
+# CORS Middleware (batasi origin sesuai konfigurasi CORS_ORIGINS / CORS_ORIGIN_REGEX)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX or None,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
@@ -195,7 +208,7 @@ async def root_status() -> dict[str, object]:
         "status": "ok",
         "app": "IKK Self-Assessment API",
         "db_initialized": _vercel_db_initialized,
-        "db_error": _vercel_init_error,
+        "db_error": None if settings.is_production else _vercel_init_error,
     }
 
 
@@ -205,5 +218,5 @@ async def health_check() -> dict[str, object]:
         "status": "ok",
         "app": "IKK Self-Assessment",
         "db_initialized": _vercel_db_initialized,
-        "db_error": _vercel_init_error,
+        "db_error": None if settings.is_production else _vercel_init_error,
     }
