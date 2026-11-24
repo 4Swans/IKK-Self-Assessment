@@ -147,15 +147,32 @@ def path_aman_di_upload_dir(disk_path: str) -> Path | None:
         return None
     upload_root = Path(settings.UPLOAD_DIR).resolve()
     candidate = Path(disk_path)
-    if not candidate.is_absolute():
-        candidate = upload_root / candidate
-    try:
-        resolved = candidate.resolve()
-    except OSError:
-        return None
-    if not resolved.is_relative_to(upload_root):
-        return None
-    return resolved
+
+    # Jika path relatif (misal "uploads/abc.pdf" saat UPLOAD_DIR="./uploads"),
+    # periksa relatif terhadap CWD terlebih dahulu sebelum digabung dengan upload_root.
+    candidates = (
+        [candidate]
+        if candidate.is_absolute()
+        else [Path.cwd() / candidate, upload_root / candidate]
+    )
+
+    for cand in candidates:
+        try:
+            resolved = cand.resolve()
+        except OSError:
+            continue
+        if resolved.is_relative_to(upload_root) and resolved.exists() and resolved.is_file():
+            return resolved
+
+    for cand in candidates:
+        try:
+            resolved = cand.resolve()
+        except OSError:
+            continue
+        if resolved.is_relative_to(upload_root):
+            return resolved
+
+    return None
 
 
 def hapus_berkas_disk_aman(disk_path: str | None) -> None:

@@ -32,8 +32,11 @@ def test_sanitasi_nama_dan_content_disposition() -> None:
 
 def test_path_traversal_ditolak() -> None:
     assert path_aman_di_upload_dir("../../../etc/passwd") is None
-    aman = path_aman_di_upload_dir(str(Path(settings.UPLOAD_DIR) / "contoh.pdf"))
-    assert aman is not None
+    assert path_aman_di_upload_dir("uploads/../../etc/passwd") is None
+    aman_rel = path_aman_di_upload_dir(str(Path(settings.UPLOAD_DIR) / "contoh.pdf"))
+    assert aman_rel is not None
+    assert aman_rel.name == "contoh.pdf"
+    assert aman_rel.parent == Path(settings.UPLOAD_DIR).resolve()
 
 
 def test_deteksi_lapisan_teks_pdf() -> None:
