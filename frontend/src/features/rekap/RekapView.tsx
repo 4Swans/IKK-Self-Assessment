@@ -84,7 +84,9 @@ export function RekapView() {
     {
       query: {
         refetchOnMount: "always",
-        refetchInterval: 5000,
+        refetchInterval: 30_000,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
       },
     }
   );

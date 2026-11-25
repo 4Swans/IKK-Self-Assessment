@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, undefer
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -269,7 +269,7 @@ async def gabung_pdf_bukti(
         .where(Jawaban.id == jawaban_id)
         .options(
             selectinload(Jawaban.asesmen).selectinload(Asesmen.kebijakan),
-            selectinload(Jawaban.bukti_dukung_list),
+            selectinload(Jawaban.bukti_dukung_list).undefer(BuktiDukung.konten),
         )
     )
     res_j = await db.execute(stmt_j)
@@ -355,7 +355,7 @@ async def hapus_bukti(
         .options(
             selectinload(BuktiDukung.jawaban)
             .selectinload(Jawaban.asesmen)
-            .selectinload(Asesmen.kebijakan)
+            .selectinload(Asesmen.kebijakan),
         )
     )
     res = await db.execute(stmt)
@@ -391,9 +391,10 @@ async def unduh_bukti(
         select(BuktiDukung)
         .where(BuktiDukung.id == bukti_id)
         .options(
+            undefer(BuktiDukung.konten),
             selectinload(BuktiDukung.jawaban)
             .selectinload(Jawaban.asesmen)
-            .selectinload(Asesmen.kebijakan)
+            .selectinload(Asesmen.kebijakan),
         )
     )
     res = await db.execute(stmt)

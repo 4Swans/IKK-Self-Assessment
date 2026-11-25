@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, undefer
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -662,7 +662,11 @@ async def unduh_bukti_jfak(
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Mengunduh atau menampilkan berkas SK JFAK yang diunggah pada asesmen."""
-    stmt = select(Asesmen).where(Asesmen.id == asesmen_id).options(selectinload(Asesmen.kebijakan))
+    stmt = (
+        select(Asesmen)
+        .where(Asesmen.id == asesmen_id)
+        .options(selectinload(Asesmen.kebijakan), undefer(Asesmen.sk_jfak_konten))
+    )
     res = await db.execute(stmt)
     asesmen = res.scalar_one_or_none()
     if not asesmen:

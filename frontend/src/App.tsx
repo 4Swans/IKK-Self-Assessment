@@ -75,7 +75,8 @@ function AppShell() {
     {
       query: {
         enabled: isAuthenticated && (isKoordinator || isAdmin) && !!activePeriodeNavId,
-        refetchInterval: 5000,
+        refetchInterval: 30_000,
+        refetchIntervalInBackground: false,
         refetchOnWindowFocus: true,
       },
     }

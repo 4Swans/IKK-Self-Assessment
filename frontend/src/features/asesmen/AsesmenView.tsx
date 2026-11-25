@@ -322,7 +322,14 @@ export function AsesmenView() {
   // Query Kebijakan dari PostgreSQL
   const { data: kebijakanBackendResp } = useDaftarKebijakanApiV1KebijakanGet(
     { periode_id: activePeriodeId! },
-    { query: { enabled: !!activePeriodeId, refetchInterval: 5000 } }
+    {
+      query: {
+        enabled: !!activePeriodeId,
+        refetchInterval: 30_000,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
+      },
+    }
   );
   const kebijakanDbList = useMemo(() => {
     const all = kebijakanBackendResp?.data || [];
@@ -402,7 +409,7 @@ export function AsesmenView() {
         query: {
           enabled: !!currentKebijakanId,
           refetchOnMount: "always",
-          refetchInterval: 5000,
+          refetchOnWindowFocus: true,
         },
       }
     );

@@ -72,6 +72,7 @@ export function LoginView() {
 
     let isMounted = true;
     const intervalId = setInterval(async () => {
+      if (document.hidden) return;
       try {
         const resp = await axios.default.get(
           `/api/v1/auth/status-pendaftaran?username=${encodeURIComponent(regSuccessData.username)}`
@@ -87,7 +88,7 @@ export function LoginView() {
       } catch {
         // Abaikan galat jaringan sementara saat polling
       }
-    }, 2500);
+    }, 5000);
 
     return () => {
       isMounted = false;
@@ -153,13 +154,19 @@ export function LoginView() {
       await loginDenganUsername(username.trim(), password);
       navigate("/kebijakan");
     } catch (err: any) {
-      let detail = err?.response?.data?.detail;
+      let detail =
+        typeof err?.response?.data?.detail === "string"
+          ? err.response.data.detail
+          : undefined;
       if (!err?.response) {
-        detail = "Tidak dapat terhubung ke server backend (port 8000). Pastikan backend aktif.";
-      } else if (err.response.status === 500) {
-        detail = "Server backend gagal terhubung ke basis data (PostgreSQL port 5433). Pastikan database PostgreSQL aktif.";
+        detail =
+          "Tidak dapat terhubung ke server aplikasi. Periksa koneksi jaringan Anda atau pastikan layanan backend sedang aktif.";
+      } else if (err.response.status >= 500 && !detail) {
+        detail =
+          "Layanan server atau basis data sedang mengalami gangguan sementara. Silakan coba beberapa saat lagi atau hubungi Administrator.";
       } else if (!detail) {
-        detail = "Gagal masuk. Periksa kembali nama pengguna (username) dan kata sandi Anda.";
+        detail =
+          "Gagal masuk. Periksa kembali nama pengguna (username) dan kata sandi Anda.";
       }
       setErrorMessage(detail);
     } finally {

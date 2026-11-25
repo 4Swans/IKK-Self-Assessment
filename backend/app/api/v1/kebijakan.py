@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, undefer
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -551,7 +551,12 @@ async def _unduh_dokumen_kebijakan(
     current_user: Pengguna,
     db: AsyncSession,
 ) -> Response:
-    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id)
+    kolom_konten = (
+        Kebijakan.berkas_dasar_hukum_konten
+        if prefix == "dasar_hukum"
+        else Kebijakan.berkas_rkakl_konten
+    )
+    stmt = select(Kebijakan).where(Kebijakan.id == kebijakan_id).options(undefer(kolom_konten))
     res = await db.execute(stmt)
     item = res.scalar_one_or_none()
     if not item:

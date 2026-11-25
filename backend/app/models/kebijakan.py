@@ -30,11 +30,15 @@ class Kebijakan(Base):
     berkas_dasar_hukum_nama: Mapped[str | None] = mapped_column(String(500), nullable=True)
     berkas_dasar_hukum_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     berkas_dasar_hukum_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    berkas_dasar_hukum_konten: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    berkas_dasar_hukum_konten: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True, deferred=True
+    )
     berkas_rkakl_nama: Mapped[str | None] = mapped_column(String(500), nullable=True)
     berkas_rkakl_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     berkas_rkakl_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    berkas_rkakl_konten: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    berkas_rkakl_konten: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True, deferred=True
+    )
     dipilih_untuk_si_ikk: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rekomendasi: Mapped[str | None] = mapped_column(Text, nullable=True)
     satuan_kerja: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
